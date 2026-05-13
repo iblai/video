@@ -12,6 +12,7 @@ import { ConversationStarters } from "@iblai/iblai-js/web-containers/next"
 import { ChooseVoiceModal, type ChosenVoice } from "@/components/modals/choose-voice-modal"
 import { generateHeygenSpeech, listHeygenVoicesPage } from "@/lib/heygen/rest"
 import { extractTextFromFile } from "@/lib/scripts/extract-text"
+import { openaiProxyAuthHeaders, openaiProxyUrl } from "@/lib/openai/proxy"
 
 type TabKey = "text" | "audio" | "files"
 
@@ -205,11 +206,6 @@ export default function AddScriptPage() {
   const handleUploadClick = () => fileInputRef.current?.click()
 
   const transcribeAudioFile = async (file: File) => {
-    const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY
-    if (!apiKey) {
-      setTranscribeError("OpenAI API key is not configured.")
-      return
-    }
     setTranscribeError(null)
     setIsTranscribing(true)
     try {
@@ -217,9 +213,9 @@ export default function AddScriptPage() {
       body.append("file", file)
       body.append("model", "whisper-1")
       body.append("response_format", "text")
-      const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      const res = await fetch(openaiProxyUrl("v1/audio/transcriptions"), {
         method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}` },
+        headers: openaiProxyAuthHeaders(),
         body,
       })
       if (!res.ok) {
@@ -301,20 +297,14 @@ export default function AddScriptPage() {
       setAiError("Please describe the lesson or topic first.")
       return
     }
-    const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY
-    if (!apiKey) {
-      setAiError("OpenAI API key is not configured.")
-      return
-    }
-
     setIsGenerating(true)
     setAiError(null)
     try {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      const res = await fetch(openaiProxyUrl("v1/chat/completions"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
+          ...openaiProxyAuthHeaders(),
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",

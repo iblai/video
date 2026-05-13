@@ -20,8 +20,13 @@ test.describe("Sidebar navigation", () => {
       await expect(
         page.getByRole("heading", { name: heading }),
       ).toBeVisible({ timeout: 15_000 });
-      // Next.js dev error overlay
-      await expect(page.locator("nextjs-portal")).toHaveCount(0);
+      // Next 16's `<nextjs-portal>` hosts the always-on Dev Tools button,
+      // so we can't gate on its presence. Look for the actual error
+      // overlay marker instead — only present when Next surfaces a
+      // build-time / runtime error.
+      await expect(
+        page.locator("nextjs-portal [data-nextjs-toast-errors-parent]"),
+      ).toHaveCount(0);
     });
   }
 });

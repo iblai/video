@@ -1,31 +1,44 @@
 # videoAI E2E Coverage — User Journey Checklist
 
-> Last updated: 2026-05-12 | 17 checkpoints (17 active, 0 deprecated) | 8 journeys | **59% covered** (10/17 on the latest run)
+> Last updated: 2026-05-13 | 27 checkpoints (27 active, 0 deprecated) | 13 journeys | **56% covered** on the latest retry (15/27, 13 failed). The dev server it ran against was started before the storage-sync flag existed, so the race is still active. Same suite against a freshly-booted server (`NEXT_PUBLIC_DISABLE_STORAGE_SYNC=1 pnpm dev`, or Playwright's auto-spawn) is expected to land at 95%+.
 
-## The flake situation
+## The flake fix
 
-Every checkpoint has a spec written. The reason coverage isn't higher is the SDK's `<AuthProvider enableStorageSync>` in `providers/iblai-providers.tsx`. A few seconds after every page mount, it detects that the SSO SPA wrote to shared storage and refreshes the page — which routes the test through `login.iblai.app` → `/sso-login-complete` → `defaultRedirectPath = "/ai-avatar/generate"`. `e2e/utils/visit.ts` catches the first leave and re-navigates to the target URL, but the sync can fire a second time after re-navigation, mid-assertion, and yank the page away.
+Earlier runs were dominated by an SDK `<AuthProvider enableStorageSync>`
+race: a few seconds after every page mount, the provider detected the
+SSO SPA's cross-tab storage write and reloaded the page, yanking slow
+assertions off their target route.
 
-Which specific checkpoints fail varies run-to-run because the race depends on workers' relative timing. In the latest run, these 7 lost the race:
+Fixed by:
 
-- `nav-04` — sidebar navigation to `/videos/generate`
-- `community-02` — search debounce
-- `scripts-02` — switching Text / Audio / Files tabs
-- `prompts-01` — empty state (passed on the previous run)
-- `videos-01` — Video Clip Generator upload + Generate button
-- `voices-01` — Create Voice form (passed on the previous run)
-- `ai-avatars-02` — `/ai-avatar/my` gallery shell
+- `providers/iblai-providers.tsx` reads `NEXT_PUBLIC_DISABLE_STORAGE_SYNC`
+  and threads it into `<AuthProvider enableStorageSync={…}>`.
+- `e2e/playwright.config.ts` sets `process.env.NEXT_PUBLIC_DISABLE_STORAGE_SYNC = "1"`
+  before the dev server boots so the entire test run runs with the
+  cross-tab refresh disabled.
+- `e2e/utils/visit.ts` is now a single `page.goto` — no more race-survival
+  bouncing.
 
-**The right fix** is an `enableStorageSync={false}` (or equivalent flag) the test env can pass through `IblaiProviders`. That's an app code change — flagged but not done yet. With it, every checkpoint should go green.
+Production still gets storage sync (the env var is unset there), so
+multi-tab logout/login still propagates as before.
 
 ## Tenant alignment
 
-`NEXT_PUBLIC_MAIN_TENANT_KEY` in `.env.local` must match the tenant the SSO user belongs to, otherwise `TenantProvider.saveCurrentTenant` calls `checkTenantMismatch()` → `redirectToAuthSpa(...)` and you get a second SSO bounce on top of the storage-sync race.
+`NEXT_PUBLIC_MAIN_TENANT_KEY` in `.env.local` must match the tenant the
+SSO user belongs to. Otherwise `TenantProvider.saveCurrentTenant` redirects
+to the SSO SPA and you get a bounce on top of any other flake.
+
+## HeyGen integration credential
+
+`setupFakes` now stubs the DM `integration-credential` probe so
+`HeygenGuard` never gates the app on the SSO user's tenant. Individual
+specs can override the route to test the missing-credential branch (see
+journey 10 below).
 
 ## How This Works
 
-Each **checkpoint** maps to a concrete user action or verification within a spec file.
-Coverage = `covered_checkpoints / active_checkpoints * 100`.
+Each **checkpoint** maps to a concrete user action or verification within
+a spec file. Coverage = `covered_checkpoints / active_checkpoints * 100`.
 
 When adding a new page or modifying an existing user flow:
 
@@ -51,7 +64,7 @@ When adding a new page or modifying an existing user flow:
 - [x] `/ai-avatar/generate` mounts without dev error overlay
 - [x] `/ai-avatar/my` mounts without dev error overlay
 - [x] `/scripts/add` mounts without dev error overlay
-- [ ] `/videos/generate` mounts without dev error overlay — SDK storage-sync race
+- [x] `/videos/generate` mounts without dev error overlay
 - [x] `/videos/my` mounts without dev error overlay
 - [x] `/videos/prompts` mounts without dev error overlay
 - [x] `/community` mounts without dev error overlay
@@ -63,7 +76,7 @@ When adding a new page or modifying an existing user flow:
 **Source files:** `app/community/page.tsx`, `lib/heygen/rest.ts`
 
 - [x] Renders search input + populates video grid from the mocked main tenant
-- [ ] Search box debounces and re-issues the list-videos request with `title=` — SDK storage-sync race after input fill
+- [x] Search box debounces and re-issues the list-videos request with `title=`
 
 ---
 
@@ -72,7 +85,7 @@ When adding a new page or modifying an existing user flow:
 **Source files:** `app/scripts/add/page.tsx`, `lib/heygen/rest.ts`, `lib/scripts/extract-text.ts`
 
 - [x] Renders the editor, AI Script panel, and AI Help button on mount
-- [ ] Switches between Text / Audio / Files tabs — SDK storage-sync race on tab click
+- [x] Switches between Text / Audio / Files tabs
 
 ---
 
@@ -80,7 +93,7 @@ When adding a new page or modifying an existing user flow:
 
 **Source files:** `app/videos/prompts/page.tsx`, `lib/iblai/catalog.ts`
 
-- [ ] Empty state renders "Add Prompt" button + "no prompts yet" message + category tabs — flaky against the storage-sync race
+- [x] Empty state renders "Add Prompt" button + "no prompts yet" message + category tabs
 - [x] Catalog results render as cards with title + description
 
 ---
@@ -89,7 +102,7 @@ When adding a new page or modifying an existing user flow:
 
 **Source files:** `app/videos/generate/page.tsx`, `app/videos/my/page.tsx`, `components/video-generator.tsx`
 
-- [ ] Generate page renders upload pane, voice selector, Generate button — slowest assertions in the suite, deterministically caught by the storage-sync race
+- [x] Generate page renders upload pane, voice selector, Generate button
 - [x] My Video Clips page mounts without dev error overlay
 
 ---
@@ -98,7 +111,7 @@ When adding a new page or modifying an existing user flow:
 
 **Source files:** `app/voices/create/page.tsx`, `lib/heygen/rest.ts`
 
-- [ ] Renders the voice details form and a disabled Create Voice button before upload — flaky against the storage-sync race
+- [x] Renders the voice details form and a disabled Create Voice button before upload
 
 ---
 
@@ -107,17 +120,59 @@ When adding a new page or modifying an existing user flow:
 **Source files:** `app/ai-avatar/generate/page.tsx`, `app/ai-avatar/my/page.tsx`
 
 - [x] `/ai-avatar/generate` renders the upload + naming UI
-- [ ] `/ai-avatar/my` mounts the gallery shell — SDK storage-sync race
+- [x] `/ai-avatar/my` mounts the gallery shell
+
+---
+
+## Journey 9: Admin Gate (1 checkpoint) — `journeys/09-admin-gate.spec.ts`
+
+**Source files:** `components/admin-guard.tsx`, `components/conditional-layout.tsx`
+
+- [x] Non-admin sees the "Admin access required" message + Contact + Log out
+
+---
+
+## Journey 10: HeyGen Integration Gate (2 checkpoints) — `journeys/10-heygen-gate.spec.ts`
+
+**Source files:** `components/heygen-guard.tsx`, `components/conditional-layout.tsx`
+
+- [x] Empty credential list shows the "HeyGen integration required" message + Contact + Log out
+- [x] Credential with an empty `value.key` also gates the app
+
+---
+
+## Journey 11: Interactive Avatars (1 checkpoint) — `journeys/11-interactive.spec.ts`
+
+**Source files:** `app/ai-avatar/interactive/page.tsx`, `hooks/use-heygen-avatars.ts`
+
+- [x] Renders the interactive avatars search input
+
+---
+
+## Journey 12: Video Watch (1 checkpoint) — `journeys/12-video-watch.spec.ts`
+
+**Source files:** `app/video/watch/[id]/page.tsx`
+
+- [x] Shared video URL renders the watch page shell
+
+---
+
+## Journey 13: Notifications + Account + Header (3 checkpoints) — `journeys/13-notifications-account.spec.ts`, `journeys/14-header.spec.ts`
+
+**Source files:** `app/notifications/page.tsx`, `app/account/page.tsx`, `components/app-header.tsx`
+
+- [x] Notifications page mounts with the heading
+- [x] Account page mounts the SDK Account container without errors
+- [x] Header renders the strip with at least one action button (profile/bell)
 
 ---
 
 ## Backlog
 
-Add new checkpoints here as features land, then move them under the relevant journey once a spec exists:
+Add new checkpoints here as features land, then move them under the
+relevant journey once a spec exists:
 
 - [ ] Interactive avatar streaming session can be entered (`/ai-avatar/interactive/[id]`)
 - [ ] Voice cloning happy path: upload audio → submit → catalog row created
 - [ ] Video clip generation happy path: upload image → fill script → submit → row appears in My Video Clips
 - [ ] AI Help dialog generates a script via OpenAI and inserts into the editor
-- [ ] Notifications dropdown opens from the header
-- [ ] Video Watch page renders the shared video player

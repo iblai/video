@@ -13,7 +13,21 @@ import { useSidebar } from "@/components/ui/sidebar"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import Image from "next/image"
 
-const sidebarItems = [
+interface SidebarChild {
+  id: string
+  label: string
+  href: string
+}
+
+interface SidebarItem {
+  id: string
+  label: string
+  icon: typeof Users
+  href?: string
+  children: SidebarChild[]
+}
+
+const sidebarItems: SidebarItem[] = [
   {
     id: "characters",
     label: "AI Avatars",
@@ -50,6 +64,8 @@ export function AppSidebar() {
   const { state, toggleSidebar, isMobile, openMobile, setOpenMobile } = useSidebar()
 
   const isCollapsed = state === "collapsed"
+
+  const visibleSidebarItems = sidebarItems
 
   useEffect(() => {
     const savedExpandedItems = localStorage.getItem("sidebar-expanded-items")
@@ -154,7 +170,7 @@ export function AppSidebar() {
 
         <nav className="flex-1 p-4">
           <div className="space-y-2">
-            {sidebarItems.map((item) => (
+            {visibleSidebarItems.map((item) => (
               <div key={item.id}>
                 {item.href ? (
                   <Link href={item.href} onClick={() => isMobileSheet && setOpenMobile(false)}>
@@ -262,7 +278,7 @@ export function AppSidebar() {
 
       <nav className="flex-1 p-4">
         <div className="space-y-2">
-          {sidebarItems.map((item) => (
+          {visibleSidebarItems.map((item) => (
             <div key={item.id}>
               <HoverMenu item={item}>
                 {item.href ? (

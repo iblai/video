@@ -103,6 +103,12 @@ export interface ListCatalogResourcesOptions {
 /**
  * List catalog resources matching the given filters. Returns a flat array
  * — the endpoint is not paginated.
+ *
+ * Tenant-wide by default: callers should NOT pass `username` unless they
+ * specifically need to scope to one user. Visibility across the tenant
+ * (admins ↔ admins, students ← admins) depends on this filter being
+ * absent so every resource on the platform is returned regardless of
+ * which user originally created it.
  */
 export async function listCatalogResources<TData = Record<string, unknown>>(
   options: ListCatalogResourcesOptions,
@@ -203,12 +209,20 @@ export async function createCatalogResource<TData = Record<string, unknown>>(
   }
 
   const username = options.username ?? getCurrentUsername();
+  // The DM catalog endpoint requires `username` on POST — without it the
+  // server rejects the request. Listing is tenant-wide (no username sent),
+  // but creates always carry the acting user's name.
+  if (!username) {
+    throw new Error(
+      "catalog: username is required to create a resource (user not authenticated)",
+    );
+  }
   const credentialsIn = options.credentialsIn ?? "query";
 
   const url = new URL(`${config.dmUrl()}/api/catalog/resources/`);
   if (credentialsIn === "query") {
     url.searchParams.set("platform_key", options.platform);
-    if (username) url.searchParams.set("username", username);
+    url.searchParams.set("username", username);
   }
 
   const body: Record<string, unknown> = {
@@ -217,7 +231,7 @@ export async function createCatalogResource<TData = Record<string, unknown>>(
   };
   if (credentialsIn === "body") {
     body.platform_key = options.platform;
-    if (username) body.username = username;
+    body.username = username;
   }
   if (options.name !== undefined) body.name = options.name;
   if (options.description !== undefined) body.description = options.description;

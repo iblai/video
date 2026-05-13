@@ -17,7 +17,12 @@ An AI video studio for generating avatar videos, cloning voices, and authoring s
 
 ## What is videoAI
 
-videoAI is an end-to-end video generation workspace. Pick or create an avatar, clone a voice, write or transcribe a script, and generate a finished video — all from one shell powered by the [@iblai/iblai-js](https://www.npmjs.com/package/@iblai/iblai-js) SDK and connected to `iblai.app`. The HeyGen API is never called directly from the browser: a tenant-scoped server proxy resolves the integration credential through ibl.ai's `ai-account` service and forwards each request upstream.
+
+The demo on Vercel is [here](https://vercel-vidai.vercel.app/).
+
+
+
+videoAI is an end-to-end video generation workspace. Pick or create an avatar, clone a voice, write or transcribe a script, and generate a finished video — all from one shell powered by the [@iblai/iblai-js](https://www.npmjs.com/package/@iblai/iblai-js) SDK and connected to `iblai.app`. The HeyGen and OpenAI API keys are never called directly from the browser: tenant-scoped server proxies resolve the integration credentials through ibl.ai API and forward each request upstream.
 
 | Feature | Description |
 |---------|-------------|
@@ -31,8 +36,16 @@ videoAI is an end-to-end video generation workspace. Pick or create an avatar, c
 | **Prompt Gallery** | Tenant-shared prompt library backed by catalog `video_prompt` resources — create, edit (delete + recreate), delete, and copy prompts |
 | **Community** | Platform-wide video grid pulled from the `main` tenant's HeyGen library, with title search and cursor-based pagination |
 | **My Videos** | Per-user gallery of generated videos with live status polling and player modal |
-| **Notifications** | Header dropdown via the ibl.ai SDK's `<NotificationDropdown>` |
-| **SSO Authentication** | Login via iblai.app — no tokens to manage |
+| **Admin / HeyGen Gates** | Non-admins on a tenant or tenants without a HeyGen integration credential see a full-screen gate with Contact ibl.ai + Switch tenant (via the profile dropdown) + Log out |
+| **Profile** | Edit basic info, social links, education, experience, resume, and avatar via the SDK `<UserProfileDropdown>` + `<Profile>` |
+| **Account** | Organization settings, user management, integrations, advanced, and billing tabs |
+| **Notifications** | Header dropdown via the SDK's `<NotificationDropdown>` + dedicated `/notifications` page |
+| **Tenant Switching** | Switch between tenants from the avatar dropdown (uses `/login/complete` so the JWT is preserved across the switch) |
+| **SSO Authentication** | Login via `iblai.app` — no tokens to manage |
+
+![AI Avatar generation](https://raw.githubusercontent.com/iblai/vidai/main/docs/screenshots/avatar-generation.png)
+![Video clip generator](https://raw.githubusercontent.com/iblai/vidai/main/docs/screenshots/video-clip-generation.png)
+![Script editor with AI Help](https://raw.githubusercontent.com/iblai/vidai/main/docs/screenshots/script-generation.png)
 
 ## Quick Start
 
@@ -40,9 +53,46 @@ videoAI is an end-to-end video generation workspace. Pick or create an avatar, c
 
 - Node.js 18+
 - pnpm (fall back to npm only if unavailable)
-- An ibl.ai platform (`iblai.app`) login.
-- A HeyGen integration credential registered on your tenant via the ibl.ai `ai-account` service
-- An OpenAI API key for script generation, prompt enhancement, and audio transcription
+- An ibl.ai login
+- A HeyGen integration credential registered on your tenant via the ibl.ai `ai-account` service (the app gates itself with a "HeyGen integration required" screen when this is missing)
+- An OpenAI API key, exported as `OPENAI_API_KEY` server-side (used by the `/api/openai/*` proxy for Whisper, AI Help, and motion-prompt enhancement)
+- The `iblai` CLI — install from source (see below)
+
+### Install the `iblai` CLI
+
+The CLI is installed from source via `make`. `clone + make install` is the supported install path — the version you run tracks the templates the team is editing.
+
+**macOS / Linux** (Python 3.11+, pip, git, make):
+
+```bash
+git clone https://github.com/iblai/iblai-app-cli.git
+cd iblai-app-cli
+make -C .iblai install
+cd -   # back to your project
+```
+
+If `iblai` isn't found afterwards, add `~/.local/bin` to your `PATH`:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"   # add to ~/.bashrc or ~/.zshrc to persist
+```
+
+**Windows** (Python 3.11+, pip, git):
+
+```powershell
+git clone https://github.com/iblai/iblai-app-cli.git
+cd iblai-app-cli
+pip install -e .iblai/
+cd -
+```
+
+If `iblai` isn't found, ensure Python Scripts is on `PATH` (typically `%APPDATA%\Python\Python311\Scripts\`).
+
+Verify the install:
+
+```bash
+iblai --version
+```
 
 ### Install & Run
 
@@ -51,7 +101,9 @@ pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). You'll be redirected to `https://login.iblai.app` for SSO; on return, your tenant + DM token are resolved from the SDK and every HeyGen call is proxied through `/api/heygen/*` using the credential registered for your tenant.
+Open [http://localhost:3000](http://localhost:3000). You'll be redirected to `https://login.iblai.app` for SSO; on return, your tenant + DM token are resolved from the SDK and every HeyGen / OpenAI call is proxied through `/api/heygen/*` and `/api/openai/*` using credentials registered server-side.
+
+`.env.local` is already populated with the iblai.app endpoints — no manual platform credentials are needed up front.
 
 ### Build
 
@@ -62,7 +114,7 @@ pnpm start
 
 ### Tests
 
-Vitest covers the pure libraries (catalog, tenant, config, HeyGen REST client, voice loader, document extractor):
+Vitest covers the libraries, hooks, providers, components, modals, and API route handlers:
 
 ```bash
 pnpm test                # one-shot
@@ -70,7 +122,7 @@ pnpm test:watch          # rerun on file changes
 pnpm test:coverage       # html + console v8 report under coverage/
 ```
 
-Playwright covers the user journeys via real SSO. Copy `e2e/.env.development.example` to `e2e/.env.development` (gitignored) and fill in your iblai login:
+Playwright covers user journeys via real SSO. Copy `e2e/.env.development.example` to `e2e/.env.development` (gitignored) and fill in your iblai login:
 
 ```
 PLAYWRIGHT_USERNAME=you@example.com
@@ -83,11 +135,11 @@ Then:
 pnpm test:e2e            # spins up `next dev` on port 3100, runs auth.setup.ts once, then the journeys
 ```
 
-`e2e/auth.setup.ts` drives the SSO round-trip and writes the resulting `storageState` to `e2e/playwright/.auth/user.json`; every journey reuses it via the `chromium` project's `dependencies: ["setup"]`. HeyGen + ibl.ai catalog calls are stubbed per-journey by `e2e/utils/heygen-mocks.ts` for predictable rendering. Journey coverage lives in `e2e/COVERAGE.md` + `e2e/coverage.json`.
+`e2e/auth.setup.ts` drives the SSO round-trip and writes the resulting `storageState` to `e2e/playwright/.auth/user.json`; every journey reuses it via the `chromium` project's `dependencies: ["setup"]`. HeyGen + ibl.ai catalog + OpenAI calls are stubbed per-journey by `e2e/utils/heygen-mocks.ts` for predictable rendering. The SDK's cross-tab `enableStorageSync` race is disabled in the test env via `NEXT_PUBLIC_DISABLE_STORAGE_SYNC=1` (build-time) or `localStorage.__disable_storage_sync=1` (runtime, set by Playwright). Journey coverage lives in `e2e/COVERAGE.md` + `e2e/coverage.json`.
 
 ### Environment variables
 
-`.env.local` configures the ibl.ai endpoints and the OpenAI key. The HeyGen API key is never read by the browser — it's resolved server-side per request.
+`.env.local` configures the ibl.ai endpoints and the OpenAI key. The HeyGen API key is never read by the browser — it's resolved server-side per request via the proxy.
 
 ```bash
 # ibl.ai platform — defaults work out of the box
@@ -95,11 +147,35 @@ NEXT_PUBLIC_API_BASE_URL=https://api.iblai.app
 NEXT_PUBLIC_AUTH_URL=https://login.iblai.app
 NEXT_PUBLIC_PLATFORM_BASE_DOMAIN=iblai.app
 
-# Optional: pin a specific tenant for `resolveAppTenant()`
-NEXT_PUBLIC_MAIN_TENANT_KEY=
+# OpenAI — server-only. The `/api/openai/*` proxy reads this and adds
+# `Authorization: Bearer` before forwarding. Do NOT use the
+# `NEXT_PUBLIC_` prefix — that would inline the key into the browser bundle.
+OPENAI_API_KEY=sk-...
 
-# OpenAI — used client-side for Whisper, prompt enhance, and AI Help
-NEXT_PUBLIC_OPENAI_API_KEY=sk-...
+# Optional: disable the SDK's cross-tab refresh in the dev server (also
+# settable per-page via localStorage.__disable_storage_sync = "1")
+NEXT_PUBLIC_DISABLE_STORAGE_SYNC=
+```
+
+### Deploy to Vercel
+
+```bash
+iblai deploy vercel
+```
+
+The CLI auto-detects the deploy mode from `next.config.mjs`. videoAI is a server-rendered Next.js app (App Router with API routes for the HeyGen and OpenAI proxies), so the CLI will:
+
+- deploy the repo root to Vercel for a remote build,
+- disable Vercel authentication / password protection,
+- upload env vars from `.env.local` to production + preview (`NEXT_PUBLIC_*` as `plain`, the rest including `OPENAI_API_KEY` as `encrypted`; reserved keys and `your-…` placeholders are skipped),
+- rerun the deploy with `--force` + `VERCEL_FORCE_NO_BUILD_CACHE=1` whenever env vars changed so the new `NEXT_PUBLIC_*` values are re-inlined into the client bundle.
+
+Override detection with `--mode static` or `--mode server` when needed. Full guide: [`/iblai-ops-deploy`](https://github.com/iblai/vibe/blob/main/skills/iblai-ops-deploy/SKILL.md).
+
+**Setup:** generate a Vercel token at [https://vercel.com/account/tokens](https://vercel.com/account/tokens) and add it to `iblai.env`:
+
+```bash
+echo 'VERCEL_TOKEN=<token>' >> iblai.env
 ```
 
 ## Project Structure
@@ -107,13 +183,13 @@ NEXT_PUBLIC_OPENAI_API_KEY=sk-...
 ```
 app/
 ├── layout.tsx                         # Root layout — title "videoAI"
-├── page.tsx                           # Dashboard landing
+├── page.tsx                           # Home redirect (auth check → /ai-avatar/generate)
 ├── login/                             # SSO entry
 ├── sso-login-complete/                # SSO callback (SDK <SsoLogin>)
 ├── ai-avatar/
-│   ├── public/                        # Browse HeyGen public avatar library
 │   ├── my/                            # Tenant-shared private avatars
 │   ├── generate/                      # Photo / digital-twin avatar creation
+│   ├── interactive/                   # Interactive avatars list
 │   └── interactive/[id]/              # Real-time streaming avatar session
 ├── voices/create/                     # Clone a voice from an audio sample
 ├── scripts/add/                       # Create Script (text, audio, files) + TTS preview
@@ -126,28 +202,39 @@ app/
 ├── video/watch/[id]/                  # Public/shareable watch page
 ├── session/[avatar]/[sessionId]/      # Interactive avatar session route
 ├── notifications/                     # Notification center
-├── account/                           # Account settings
-└── api/heygen/[...path]/route.ts      # HeyGen REST proxy (resolves tenant credential)
+├── account/                           # Account settings (SDK <Account>)
+└── api/
+    ├── heygen/[...path]/route.ts      # HeyGen REST proxy (resolves tenant credential server-side)
+    └── openai/[...path]/route.ts      # OpenAI proxy (uses OPENAI_API_KEY, never the browser)
 components/
-├── app-sidebar.tsx                    # Left nav + tenant header
-├── app-header.tsx                     # Top bar — notifications + profile
+├── admin-guard.tsx                    # Whole-app admin gate
+├── heygen-guard.tsx                   # Probes /integration-credential?name=heygen — gates on missing key
+├── conditional-layout.tsx             # Auth shell vs. authed shell switch
+├── app-sidebar.tsx                    # Left nav
+├── app-header.tsx                     # Top bar — notifications + profile (shown on gate screens too)
 ├── video-generator.tsx                # Clip generator UI (image + script + voice + motion prompt)
-├── dashboard.tsx                      # Landing page widgets
+├── iblai/                             # SDK wrappers (profile dropdown, notification bell)
 └── modals/                            # Player, share, voice picker, avatar picker, ...
 lib/heygen/
 └── rest.ts                            # Browser HeyGen client (every call goes via /api/heygen)
 lib/iblai/
 ├── config.ts                          # NEXT_PUBLIC_* env reader
-├── tenant.ts                          # Tenant resolution (env → app_tenant → SDK)
+├── tenant.ts                          # Tenant resolution from localStorage `tenant`
 ├── catalog.ts                         # Catalog resources (private avatar / video / voice / video_prompt)
 ├── ai-proxy.ts                        # ibl.ai AI proxy helpers
-├── auth-utils.ts                      # redirectToAuthSpa, logout
+├── auth-utils.ts                      # redirectToAuthSpa, logout, handleTenantSwitch
 └── storage-service.ts                 # LocalStorageService for the SDK data layer
+lib/openai/
+└── proxy.ts                           # Browser helper for /api/openai/* (no key, just DM token + tenant)
 lib/scripts/
 └── extract-text.ts                    # Lazy DOCX / PDF / PPTX / TXT extractors
 hooks/
-└── use-heygen-voices.ts               # Paginated voice loader (catalog + HeyGen, deduped)
-providers/                             # Redux + IblaiProviders + Drawer + Toaster
+├── use-heygen-voices.ts               # Paginated voice loader (catalog + HeyGen, deduped)
+├── use-heygen-avatars.ts              # Private avatar loader (catalog + HeyGen)
+├── use-heygen-streaming.ts            # LiveKit + HeyGen streaming session hook
+└── use-is-admin.ts                    # Reads tenants[].is_admin for the current tenant
+providers/
+└── iblai-providers.tsx                # Redux + AuthProvider + TenantProvider
 ```
 
 ## Built With
@@ -159,7 +246,7 @@ providers/                             # Redux + IblaiProviders + Drawer + Toast
 - [LiveKit](https://livekit.io) — WebRTC transport for interactive avatar sessions
 - [Tailwind CSS](https://tailwindcss.com) — utility-first styling with the `videoai-*` design tokens
 - [shadcn/ui](https://ui.shadcn.com) — accessible UI primitives
-- `https://iblai.app` — production backend for auth, integration credentials, and the resource catalog
+- `iblai.app` — production backend for auth, integration credentials, AI agents, billing, and the resource catalog
 
 ## Contributing
 
@@ -179,12 +266,27 @@ providers/                             # Redux + IblaiProviders + Drawer + Toast
 
 ### Guidelines
 
-- **Never call HeyGen directly from the browser** — every request must go through `/api/heygen/*` so the API key stays on the server
+- **Never call HeyGen or OpenAI directly from the browser** — every request must go through `/api/heygen/*` or `/api/openai/*` so the API keys stay on the server
 - **Use ibl.ai SDK components first** — do not build custom components when an SDK equivalent exists
 - **Use shadcn/ui for custom UI** — install via `npx shadcn@latest add <component>`, not raw HTML or third-party libraries
+- **Do not override SDK styles** — SDK components ship with their own styling
 - **Use SDK design tokens** — reference CSS variables like `var(--primary-color)`, `var(--border-color)`, `var(--text-secondary)` instead of hardcoded colors
-- **Register shared resources in the catalog** — cloned voices, photo avatars, generated videos, and prompts are all platform-wide via `lib/iblai/catalog.ts`
-- **Use `pnpm`** as the package manager and fallback to `bun` or `npm` if `pnpm` is not available.
+- **Register shared resources in the catalog** — cloned voices, photo avatars, generated videos, and prompts are all platform-wide via `lib/iblai/catalog.ts`. Always include `username` on POSTs — the DM endpoint rejects requests without it
+- **Use `pnpm`** as the package manager
+
+### Adding Features
+
+Use the iblai CLI and Claude Code skills to add new features:
+
+```bash
+iblai add auth           # SSO authentication
+iblai add chat           # AI chat widget
+iblai add profile        # User profile
+iblai add account        # Account/org settings
+iblai add analytics      # Analytics dashboard
+iblai add notification   # Notification bell
+iblai add invite         # Invite dialogs
+```
 
 ## Resources
 

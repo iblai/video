@@ -25,7 +25,7 @@ import { AuthProvider, TenantProvider } from "@iblai/iblai-js/web-utils";
 import { iblaiStore } from "@/store/iblai-store";
 import { LocalStorageService } from "@/lib/iblai/storage-service";
 import config from "@/lib/iblai/config";
-import { resolveAppTenant, checkTenantMismatch } from "@/lib/iblai/tenant";
+import { resolveAppTenant } from "@/lib/iblai/tenant";
 import {
   redirectToAuthSpa,
   hasNonExpiredAuthToken,
@@ -75,7 +75,7 @@ export function IblaiProviders({ children }: { children: ReactNode }) {
     return "";
   }, [isInitialized]);
 
-  // Tenant resolution: .env -> app_tenant -> localStorage tenant
+  // Tenant resolution: localStorage tenant
   const tenantKey = useMemo(() => resolveAppTenant(), [isInitialized]);
 
   const isSsoRoute = pathname?.startsWith("/sso-login") ?? false;
@@ -88,6 +88,21 @@ export function IblaiProviders({ children }: { children: ReactNode }) {
 
   if (!isInitialized) return LOADING;
 
+  // Storage sync watches localStorage across tabs and refreshes the page
+  // when the SSO SPA writes new tokens. It races slow e2e assertions, so
+  // the test env can disable it two ways:
+  //   1. NEXT_PUBLIC_DISABLE_STORAGE_SYNC=1   (build-time, dev server env)
+  //   2. localStorage.__disable_storage_sync === "1"  (runtime, set
+  //      per-page by Playwright via addInitScript — works against any
+  //      already-running dev server without restart)
+  const envDisabled =
+    process.env.NEXT_PUBLIC_DISABLE_STORAGE_SYNC === "1" ||
+    process.env.NEXT_PUBLIC_DISABLE_STORAGE_SYNC === "true";
+  const lsDisabled =
+    typeof window !== "undefined" &&
+    localStorage.getItem("__disable_storage_sync") === "1";
+  const storageSyncEnabled = !envDisabled && !lsDisabled;
+
   return (
     <ReduxProvider store={iblaiStore}>
       <AuthProvider
@@ -98,7 +113,7 @@ export function IblaiProviders({ children }: { children: ReactNode }) {
         pathname={pathname ?? "/"}
         storageService={storageService}
         middleware={PUBLIC_ROUTES}
-        enableStorageSync
+        enableStorageSync={storageSyncEnabled}
         fallback={LOADING}
       >
         <TenantProvider
@@ -109,10 +124,6 @@ export function IblaiProviders({ children }: { children: ReactNode }) {
             const key = typeof t === "string" ? t : t?.key ?? String(t);
             localStorage.setItem("current_tenant", key);
             localStorage.setItem("tenant", key);
-
-            // If the SDK resolved a different tenant than what the app
-            // expects, redirect to re-login for the correct tenant.
-            checkTenantMismatch();
           }}
           saveUserTenants={(t: unknown) =>
             localStorage.setItem("tenants", JSON.stringify(t))

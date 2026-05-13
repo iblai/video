@@ -62,3 +62,29 @@ export function handleLogout() {
   localStorage.clear();
   navigateTo(`${config.authUrl()}/logout?redirect-to=${origin}&tenant=${tenant}`);
 }
+
+/**
+ * Switch to a different tenant.
+ *
+ * Mirrors mentorai's pattern: preserves the JWT, clears localStorage, and
+ * redirects to the Auth SPA's /login/complete endpoint so the new session
+ * is established for the target tenant without a full re-login.
+ */
+export async function handleTenantSwitch(tenant: string) {
+  if (typeof window === "undefined") return;
+  if (!tenant || tenant === localStorage.getItem("tenant")) return;
+
+  const jwtToken = localStorage.getItem("edx_jwt_token");
+  const origin = window.location.origin;
+
+  localStorage.clear();
+  localStorage.setItem("tenant", tenant);
+
+  const params = new URLSearchParams({
+    tenant,
+    "redirect-to": origin,
+  });
+  if (jwtToken) params.set("token", jwtToken);
+
+  navigateTo(`${config.authUrl()}/login/complete?${params.toString()}`);
+}

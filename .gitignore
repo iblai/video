@@ -36,3 +36,5 @@ pnpm-lock.yaml
 /test-results
 /e2e/playwright/.auth
 /e2e/.env.development
+iblai.env
+.claude/scheduled_tasks.lock

@@ -162,17 +162,118 @@ export async function mockCatalog(page: Page) {
 }
 
 /**
- * Stub /api/heygen and /api/catalog so journeys assert against
- * predictable data regardless of what the tenant actually has provisioned.
- * SDK auth, LMS, and DM calls still hit the real ibl.ai backend — these
- * journeys rely on the `auth.setup.ts` real-SSO storage state.
+ * Intercept `/api/openai/*` proxy calls so journeys never hit OpenAI.
+ * Returns a chat-completions-shaped envelope by default; Whisper
+ * transcription returns plain text. Override per-suffix as needed.
+ */
+export async function mockOpenaiProxy(
+  page: Page,
+  overrides: Record<string, (route: Route) => Promise<void> | void> = {},
+) {
+  await page.route("**/api/openai/**", async (route) => {
+    const url = new URL(route.request().url());
+    const suffix = url.pathname.replace(/^\/api\/openai\//, "");
+    const override = overrides[suffix] ?? overrides[suffix.replace(/\/$/, "")];
+    if (override) return override(route);
+
+    if (suffix.startsWith("v1/audio/transcriptions")) {
+      return route.fulfill({
+        status: 200,
+        contentType: "text/plain",
+        body: "mock transcript",
+      });
+    }
+    if (suffix.startsWith("v1/chat/completions")) {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          choices: [{ message: { content: "mock completion" } }],
+        }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: "{}",
+    });
+  });
+}
+
+/**
+ * Stub the DM integration-credential probe so HeygenGuard never gates
+ * the app on a tenant that's missing a key. Returns a plausible heygen
+ * credential by default.
+ */
+export async function mockIntegrationCredential(page: Page) {
+  await page.route("**/integration-credential/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([
+        {
+          name: "heygen",
+          value: { key: "stub-heygen-key" },
+          platform: "test",
+        },
+      ]),
+    });
+  });
+}
+
+/**
+ * Stub the SDK's `getUserTenants` call (`/users/manage/platform/`)
+ * with an explicit response. Opt-in helper used by the admin-gate
+ * spec to force an empty tenants list so `useIsAdmin` returns false.
+ *
+ * NOT wired into `setupFakes` — the default journey behaviour is to
+ * let the real LMS reply through, so `TenantProvider` restores the
+ * SSO user's tenants (with `is_admin: true`) and journeys aren't
+ * gated by AdminGuard.
+ *
+ * IMPORTANT: do NOT call `page.evaluate` from inside the route
+ * handler. Playwright's route handlers run on a separate channel and
+ * `page.evaluate` waits for the in-flight request — deadlock.
+ */
+export async function mockUserTenants(
+  page: Page,
+  body: unknown = [],
+) {
+  await page.route("**/users/manage/platform/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(body),
+    });
+  });
+}
+
+/**
+ * Stub /api/heygen, /api/catalog, /api/openai, and the DM
+ * `integration-credential` probe so journeys assert against
+ * predictable data regardless of what the SSO tenant has provisioned.
+ *
+ * The integration-credential stub is needed because `HeygenGuard`
+ * fetches the heygen key on every page load — if the SSO user's
+ * tenant happens to return masked / missing / permission-blocked
+ * data, every journey ends up at the "HeyGen integration required"
+ * gate.
+ *
+ * `/users/manage/platform/` is intentionally NOT stubbed — the SDK's
+ * real LMS response carries the SSO user's `is_admin: true` flag, and
+ * stubbing it with an empty array would gate every test on AdminGuard.
+ * The admin-gate spec calls `mockUserTenants(page, [])` explicitly to
+ * force the negative branch.
  */
 export async function setupFakes(
   page: Page,
   hooks: {
     heygenOverrides?: Parameters<typeof mockHeygenProxy>[1];
+    openaiOverrides?: Parameters<typeof mockOpenaiProxy>[1];
   } = {},
 ) {
   await mockHeygenProxy(page, hooks.heygenOverrides);
   await mockCatalog(page);
+  await mockOpenaiProxy(page, hooks.openaiOverrides);
+  await mockIntegrationCredential(page);
 }

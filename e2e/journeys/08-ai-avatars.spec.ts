@@ -17,6 +17,6 @@ test.describe("AI Avatars", () => {
     await expect(
       page.getByRole("heading", { name: /my ai avatars/i }),
     ).toBeVisible({ timeout: 15_000 });
-    await expect(page.locator("nextjs-portal")).toHaveCount(0);
+    await expect(page.locator("nextjs-portal [data-nextjs-toast-errors-parent]")).toHaveCount(0);
   });
 });

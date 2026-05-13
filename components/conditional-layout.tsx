@@ -8,6 +8,8 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 import { Footer } from "@/components/footer"
 import { IblaiProviders } from "@/providers/iblai-providers"
+import { AdminGuard } from "@/components/admin-guard"
+import { HeygenGuard } from "@/components/heygen-guard"
 
 interface ConditionalLayoutProps {
   children: React.ReactNode
@@ -27,16 +29,20 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   return (
     <IblaiProviders>
       <SidebarProvider defaultOpen={true}>
-        <AppSidebar />
-        <div className="flex h-screen w-full">
-          <div className="flex flex-1 flex-col overflow-hidden">
-            <AppHeader />
-            <div className="flex flex-1 flex-col overflow-hidden">
-              <main className="flex-1 overflow-auto bg-white">{children}</main>
-              <Footer />
+        <AdminGuard>
+          <HeygenGuard>
+            <AppSidebar />
+            <div className="flex h-screen w-full">
+              <div className="flex flex-1 flex-col overflow-hidden">
+                <AppHeader />
+                <div className="flex flex-1 flex-col overflow-hidden">
+                  <main className="flex-1 overflow-auto bg-white">{children}</main>
+                  <Footer />
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </HeygenGuard>
+        </AdminGuard>
       </SidebarProvider>
     </IblaiProviders>
   )

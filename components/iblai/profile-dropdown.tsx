@@ -19,7 +19,7 @@ import { useMemo } from "react";
 import { UserProfileDropdown } from "@iblai/iblai-js/web-containers/next";
 import config from "@/lib/iblai/config";
 import { resolveAppTenant } from "@/lib/iblai/tenant";
-import { handleLogout, redirectToAuthSpa } from "@/lib/iblai/auth-utils";
+import { handleLogout, handleTenantSwitch } from "@/lib/iblai/auth-utils";
 
 interface ProfileDropdownProps {
   /** Additional CSS class for the dropdown trigger. */
@@ -39,37 +39,52 @@ export function ProfileDropdown({ className }: ProfileDropdownProps) {
 
   const tenantKey = useMemo(() => resolveAppTenant(), []);
 
-  const isAdmin = useMemo(() => {
-    if (typeof window === "undefined" || !tenantKey) return false;
+  const userTenants = useMemo(() => {
+    if (typeof window === "undefined") return [];
     try {
       const raw = localStorage.getItem("tenants");
-      if (!raw) return false;
-      const tenants = JSON.parse(raw);
-      const match = tenants.find((t: any) => t.key === tenantKey);
-      return !!match?.is_admin;
+      return raw ? JSON.parse(raw) : [];
     } catch {
-      return false;
+      return [];
     }
-  }, [tenantKey]);
+  }, []);
+
+  const currentTenant = useMemo(() => {
+    if (!tenantKey || userTenants.length === 0) return undefined;
+    return userTenants.find((t: any) => t.key === tenantKey);
+  }, [tenantKey, userTenants]);
+
+  const isAdmin = !!currentTenant?.is_admin;
 
   return (
     <UserProfileDropdown
       username={username}
       tenantKey={tenantKey}
       userIsAdmin={isAdmin}
+      userTenants={userTenants}
+      currentTenant={currentTenant}
       showProfileTab
       showAccountTab
-      showTenantSwitcher={false}
+      showTenantSwitcher
       showHelpLink={false}
       showLogoutButton
       authURL={config.authUrl()}
       onLogout={handleLogout}
-      onTenantChange={(tenant: string) => {
-        localStorage.setItem("tenant", tenant);
-        redirectToAuthSpa(undefined, tenant, false, true);
-      }}
+      onTenantChange={handleTenantSwitch}
       onTenantUpdate={(tenant: any) => {
-        if (tenant?.key) localStorage.setItem("tenant", tenant.key);
+        if (!tenant?.key) return;
+        localStorage.setItem("tenant", tenant.key);
+        localStorage.setItem("current_tenant", JSON.stringify(tenant));
+        try {
+          const raw = localStorage.getItem("tenants");
+          const list = raw ? JSON.parse(raw) : [];
+          const updated = list.map((t: any) =>
+            t.key === tenant.key ? tenant : t,
+          );
+          localStorage.setItem("tenants", JSON.stringify(updated));
+        } catch {
+          /* ignore */
+        }
       }}
       className={className}
     />

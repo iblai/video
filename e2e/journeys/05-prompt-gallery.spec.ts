@@ -24,6 +24,8 @@ test.describe("Prompt Gallery", () => {
   test("renders catalog prompts when the catalog returns results", async ({
     page,
   }) => {
+    await setupFakes(page);
+    // Override the default empty-list catalog mock with a populated one.
     await page.route("**/api/catalog/resources/**", async (route) => {
       const method = route.request().method();
       if (method === "GET") {

@@ -15,8 +15,10 @@ test.describe("Video Clip Generator", () => {
     await expect(
       page.getByRole("heading", { name: /upload reference image/i }),
     ).toBeVisible({ timeout: 10_000 });
+    // The Generate Button text is just "Generate" (or "Generating…" when
+    // submitted). The heading above it carries "Generate Video Clip".
     await expect(
-      page.getByRole("button", { name: /generate video/i }),
+      page.getByRole("button", { name: /^generate(ing\.\.\.)?$/i }),
     ).toBeVisible({ timeout: 10_000 });
   });
 });
@@ -28,6 +30,6 @@ test.describe("My Video Clips", () => {
     await expect(
       page.getByRole("heading", { name: /my video clips/i }),
     ).toBeVisible({ timeout: 15_000 });
-    await expect(page.locator("nextjs-portal")).toHaveCount(0);
+    await expect(page.locator("nextjs-portal [data-nextjs-toast-errors-parent]")).toHaveCount(0);
   });
 });

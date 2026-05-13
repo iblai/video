@@ -57,5 +57,13 @@ setup("authenticate", async ({ page }) => {
 
   await expect(page.locator("body")).toBeVisible();
 
+  // Bake the storage-sync escape hatch into the saved state so every
+  // subsequent spec inherits it. IblaiProviders reads this at mount and
+  // passes `enableStorageSync=false` to the SDK, which prevents the
+  // cross-tab refresh from yanking slow assertions off-page.
+  await page.evaluate(() => {
+    localStorage.setItem("__disable_storage_sync", "1");
+  });
+
   await page.context().storageState({ path: STORAGE_STATE });
 });

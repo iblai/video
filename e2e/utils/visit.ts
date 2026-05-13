@@ -1,31 +1,26 @@
 import type { Page } from "@playwright/test";
 
+const STORAGE_SYNC_FLAG_KEY = "__disable_storage_sync";
+
+const applied = new WeakSet<Page>();
+
 /**
- * Navigate to `route` and survive the SDK's <AuthProvider enableStorageSync>
- * "cookie sync detected — refreshing" cycle. When that fires (a few seconds
- * after first mount), the page bounces through login.iblai.app + SSO + the
- * SsoLogin default redirect (`/ai-avatar/generate`) — yanking journey tests
- * off their intended URL mid-assertion.
- *
- * Strategy: goto target, wait briefly to see if the sync triggers a leave;
- * if it does, wait for the SSO bounce to land back at the app, then re-goto
- * the target. Storage is now stable for assertions.
+ * Navigate to `route`. Sets the `__disable_storage_sync` flag in
+ * localStorage via `addInitScript` so `IblaiProviders` skips the SDK's
+ * cross-tab refresh — that race used to yank slow assertions off-page.
+ * Idempotent per page; safe to call from every spec regardless of which
+ * dev server we're pointed at.
  */
 export async function visit(page: Page, route: string): Promise<void> {
-  await page.goto(route, { waitUntil: "domcontentloaded" });
-
-  // Race the auth-sync redirect. Either we leave the app origin within ~6s
-  // (sync fired), or we stayed put (no sync this session).
-  const origin = new URL(page.url()).origin;
-  try {
-    await page.waitForURL((u) => u.origin !== origin, { timeout: 6_000 });
-  } catch {
-    return; // never redirected, we're good
+  if (!applied.has(page)) {
+    applied.add(page);
+    await page.addInitScript((key) => {
+      try {
+        localStorage.setItem(key, "1");
+      } catch {
+        /* ignore */
+      }
+    }, STORAGE_SYNC_FLAG_KEY);
   }
-
-  // Sync redirected us out. Wait for it to bounce back to our origin.
-  await page.waitForURL((u) => u.origin === origin, { timeout: 60_000 });
-  // The SsoLogin component lands on /ai-avatar/generate by default; we need
-  // the route the caller actually wanted.
   await page.goto(route, { waitUntil: "domcontentloaded" });
 }

@@ -22,6 +22,11 @@ const basePath = rawBasePath
 const E2E_PORT = process.env.E2E_PORT || "3100";
 const origin = process.env.E2E_BASE_URL || `http://localhost:${E2E_PORT}`;
 
+// Disable the SDK's cross-tab storage-sync redirect in the test server. It
+// races slower assertions and yanks the page mid-test. The provider reads
+// this NEXT_PUBLIC_ var at render time.
+process.env.NEXT_PUBLIC_DISABLE_STORAGE_SYNC = "1";
+
 const STORAGE_STATE = path.resolve(
   __dirname,
   "playwright",

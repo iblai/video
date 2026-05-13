@@ -27,18 +27,6 @@ const characterModels = [
     icon: "/images/models/heygen.png",
     description: "Advanced AI avatar generation with realistic facial expressions and natural speech synthesis.",
   },
-  {
-    id: "d-id",
-    name: "D-ID",
-    icon: "/images/models/d-id.svg",
-    description: "Professional talking head generation with high-quality lip-sync and natural movements.",
-  },
-  {
-    id: "synthesia",
-    name: "Synthesia",
-    icon: "/images/models/synthesia.svg",
-    description: "Enterprise-grade AI avatar platform for creating professional video content with custom avatars.",
-  },
 ]
 
 export default function CreateAvatarPage() {
@@ -519,67 +507,28 @@ Best regards,
                 </CardContent>
               </Card>
 
-              <div className="space-y-2" ref={dropdownRef}>
-                <h3 className="text-lg font-semibold text-[#4E5460]">Select Model</h3>
-                <div className="relative">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between h-auto p-4 bg-transparent hover:bg-gray-50 text-left"
-                    onClick={handleDropdownToggle}
-                  >
-                    <div className="flex items-start gap-3 flex-1 min-w-0 pr-2">
-                      <div className="w-6 h-6 flex-shrink-0 mt-0.5 rounded bg-[#0376C1] p-1">
-                        <Image
-                          src={currentModel.icon || "/placeholder.svg"}
-                          alt={currentModel.name}
-                          width={24}
-                          height={24}
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-[#4E5460] mb-1">{currentModel.name}</div>
-                        <div className="text-sm text-gray-600 leading-relaxed break-words whitespace-normal">
-                          {currentModel.description}
-                        </div>
-                      </div>
-                    </div>
-                    <ChevronDown
-                      className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${
-                        showModelDropdown ? "rotate-180" : ""
-                      }`}
+              {/* Model — only HeyGen is wired up, so show it as a static
+                  badge instead of a dropdown. */}
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-[#4E5460]">Model</h3>
+                <div className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div className="w-6 h-6 flex-shrink-0 mt-0.5 rounded bg-[#0376C1] p-1">
+                    <Image
+                      src={currentModel.icon || "/placeholder.svg"}
+                      alt={currentModel.name}
+                      width={24}
+                      height={24}
+                      className="w-full h-full object-contain"
                     />
-                  </Button>
-
-                  {showModelDropdown && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
-                      {characterModels
-                        .filter((model) => model.id !== selectedModel)
-                        .map((model) => (
-                          <div
-                            key={model.id}
-                            className={`flex items-start gap-3 p-4 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors`}
-                            onClick={() => handleModelSelect(model.id)}
-                          >
-                            <div className="w-6 h-6 flex-shrink-0 mt-0.5 rounded bg-[#0376C1] p-1">
-                              <Image
-                                src={model.icon || "/placeholder.svg"}
-                                alt={model.name}
-                                width={24}
-                                height={24}
-                                className="w-full h-full object-contain"
-                              />
-                            </div>
-                            <div className="flex-1 min-w-0 pr-2">
-                              <div className="font-semibold text-[#4E5460] mb-1">{model.name}</div>
-                              <div className="text-sm text-gray-600 leading-relaxed break-words whitespace-normal">
-                                {model.description}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-[#4E5460] mb-1">
+                      {currentModel.name}
                     </div>
-                  )}
+                    <div className="text-sm text-gray-600 leading-relaxed break-words whitespace-normal">
+                      {currentModel.description}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

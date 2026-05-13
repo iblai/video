@@ -35,7 +35,6 @@ export async function seedAuth(page: Page, opts: SeedAuthOptions = {}) {
         active: true,
       };
       localStorage.setItem("tenant", tenantKey);
-      localStorage.setItem("app_tenant", tenantKey);
       localStorage.setItem("current_tenant", JSON.stringify(tenant));
       localStorage.setItem("tenants", JSON.stringify([tenant]));
       localStorage.setItem(

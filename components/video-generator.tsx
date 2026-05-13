@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Upload, Link, Sparkles, ChevronDown, Trash2, RotateCcw } from "lucide-react"
+import { Upload, Link, Sparkles, Trash2, RotateCcw } from "lucide-react"
 import Image from "next/image"
 import {
   uploadHeygenAsset,
@@ -20,6 +20,7 @@ import {
 } from "@/lib/heygen/rest"
 import { createHeygenPrivateVideoResource } from "@/lib/iblai/catalog"
 import { resolveAppTenant } from "@/lib/iblai/tenant"
+import { openaiProxyAuthHeaders, openaiProxyUrl } from "@/lib/openai/proxy"
 import { ChooseVoiceModal, type ChosenVoice } from "@/components/modals/choose-voice-modal"
 import { Mic } from "lucide-react"
 
@@ -39,39 +40,6 @@ const models = [
     description:
       "HeyGen image-to-video — animate a reference image with a motion prompt. Renders via HeyGen's /v3/videos endpoint.",
   },
-  {
-    id: "sora2",
-    name: "Sora 2",
-    icon: "/images/models/sora.png",
-    description:
-      "OpenAI's latest video and audio generation model with realistic physics, cinematic quality, and cameo features.",
-  },
-  {
-    id: "veo3",
-    name: "Veo 3",
-    icon: "/images/models/veo3.png",
-    description: "Google's latest text-to-video model with integrated audio effects—premium quality among models.",
-  },
-  {
-    id: "kling",
-    name: "KlingAI",
-    icon: "/images/models/kling.png",
-    description:
-      "Advanced AI video generation with realistic motion and high-quality output for professional content creation.",
-  },
-  {
-    id: "sora",
-    name: "Sora",
-    icon: "/images/models/sora.png",
-    description:
-      "A video generation model, designed to take text, image, and video inputs and generate a new video as an output.",
-  },
-  {
-    id: "runway",
-    name: "Runway",
-    icon: "/images/models/runway.png",
-    description: "A video generation model known for excellent dynamic control and animation.",
-  },
 ]
 
 const resolutions = ["1280×768", "1920×1080", "1024×1024", "768×1280", "1080×1920"]
@@ -82,7 +50,6 @@ function VideoGeneratorContent() {
   const [script, setScript] = useState("")
   const [motionPrompt, setMotionPrompt] = useState("")
   const [resolution, setResolution] = useState("1280×768")
-  const [showModelDropdown, setShowModelDropdown] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -95,7 +62,6 @@ function VideoGeneratorContent() {
   const [voiceModalOpen, setVoiceModalOpen] = useState(false)
   const [isEnhancing, setIsEnhancing] = useState(false)
   const [enhanceError, setEnhanceError] = useState<string | null>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -138,20 +104,6 @@ function VideoGeneratorContent() {
     }
   }, [searchParams])
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowModelDropdown(false)
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [])
-
   // Clean up preview URL when component unmounts
   useEffect(() => {
     return () => {
@@ -162,11 +114,6 @@ function VideoGeneratorContent() {
   }, [previewUrl])
 
   const currentModel = models.find((m) => m.id === selectedModel) || models[0]
-
-  const handleModelSelect = (modelId: string) => {
-    setSelectedModel(modelId)
-    setShowModelDropdown(false)
-  }
 
   const validateFile = (file: File): boolean => {
     const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
@@ -303,11 +250,6 @@ function VideoGeneratorContent() {
   const canGenerate = !!selectedFile && !!script.trim() && !isGenerating
 
   const handleEnhanceMotionPrompt = async () => {
-    const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY
-    if (!apiKey) {
-      setEnhanceError("NEXT_PUBLIC_OPENAI_API_KEY is not set.")
-      return
-    }
     setEnhanceError(null)
     setIsEnhancing(true)
     try {
@@ -319,11 +261,11 @@ function VideoGeneratorContent() {
       const user = motionPrompt.trim()
         ? `Rewrite and expand this motion prompt with vivid, concrete detail:\n\n${motionPrompt.trim()}`
         : "Write a short motion prompt that gives the avatar natural conversational gestures and subtle head/shoulder movement."
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      const res = await fetch(openaiProxyUrl("v1/chat/completions"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
+          ...openaiProxyAuthHeaders(),
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
@@ -574,71 +516,26 @@ function VideoGeneratorContent() {
               />
             </div>
 
-            {/* Model Selector */}
-            <div className="space-y-2" ref={dropdownRef}>
-              <div className="relative">
-                <Button
-                  variant="outline"
-                  className="w-full justify-between h-auto p-3 sm:p-4 bg-transparent hover:bg-gray-50 text-left"
-                  onClick={() => setShowModelDropdown(!showModelDropdown)}
-                >
-                  <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0 pr-2">
-                    <div className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 mt-0.5">
-                      <Image
-                        src={currentModel.icon || "/placeholder.svg"}
-                        alt={currentModel.name}
-                        width={24}
-                        height={24}
-                        className={`w-full h-full object-contain ${
-                          currentModel.id === "freepick" ? "bg-blue-500 rounded-full p-1" : ""
-                        }`}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-[#4E5460] mb-1 text-sm sm:text-base">{currentModel.name}</div>
-                      <div className="text-xs sm:text-sm text-gray-600 leading-relaxed break-words whitespace-normal">
-                        {currentModel.description}
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronDown
-                    className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0 transition-transform ${
-                      showModelDropdown ? "rotate-180" : ""
-                    }`}
-                  />
-                </Button>
-
-                {showModelDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 sm:max-h-80 overflow-y-auto">
-                    {models
-                      .filter((model) => model.id !== selectedModel)
-                      .map((model) => (
-                        <div
-                          key={model.id}
-                          className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
-                          onClick={() => handleModelSelect(model.id)}
-                        >
-                          <div className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 mt-0.5">
-                            <Image
-                              src={model.icon || "/placeholder.svg"}
-                              alt={model.name}
-                              width={24}
-                              height={24}
-                              className={`w-full h-full object-contain ${
-                                model.id === "freepick" ? "bg-blue-500 rounded-full p-1" : ""
-                              }`}
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0 pr-2">
-                            <div className="font-semibold text-[#4E5460] mb-1 text-sm sm:text-base">{model.name}</div>
-                            <div className="text-xs sm:text-sm text-gray-600 leading-relaxed break-words whitespace-normal">
-                              {model.description}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                )}
+            {/* Model — only HeyGen is wired up right now, so show it as a
+                static badge instead of a dropdown. The icon PNG is a
+                light HeyGen wordmark, so we sit it on a dark blue tile
+                so it's visible. */}
+            <div className="flex items-center gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-[#0376C1] p-2 sm:h-14 sm:w-14">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={currentModel.icon}
+                  alt={currentModel.name}
+                  className="h-full w-full object-contain"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-[#4E5460] mb-1 text-sm sm:text-base">
+                  {currentModel.name}
+                </div>
+                <div className="text-xs sm:text-sm text-gray-600 leading-relaxed break-words whitespace-normal">
+                  {currentModel.description}
+                </div>
               </div>
             </div>
 

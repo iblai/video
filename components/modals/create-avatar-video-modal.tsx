@@ -33,10 +33,6 @@ interface CreateAvatarVideoModalProps {
 
 const models = [
   { id: "heygen", name: "HeyGen", icon: "/images/models/heygen.png" },
-  { id: "veo3", name: "Veo 3", icon: "/images/models/veo3.png" },
-  { id: "kling", name: "KlingAI", icon: "/images/models/kling.png" },
-  { id: "sora", name: "Sora", icon: "/images/models/sora.png" },
-  { id: "runway", name: "Runway", icon: "/images/models/runway.png" },
 ]
 
 export function CreateAvatarVideoModal({ open, onOpenChange, avatar }: CreateAvatarVideoModalProps) {

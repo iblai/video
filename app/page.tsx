@@ -8,11 +8,11 @@ export default function HomePage() {
   const router = useRouter()
 
   useEffect(() => {
-    if (hasNonExpiredAuthToken()) {
-      router.replace("/ai-avatar/generate")
-    } else {
+    if (!hasNonExpiredAuthToken()) {
       redirectToAuthSpa()
+      return
     }
+    router.replace("/ai-avatar/generate")
   }, [router])
 
   return (

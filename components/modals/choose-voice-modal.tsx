@@ -121,9 +121,9 @@ export function ChooseVoiceModal({ open, onOpenChange, onSelectVoice, filter }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden p-0">
+      <DialogContent className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden p-0">
         <DialogTitle className="sr-only">Choose Voice</DialogTitle>
-        <div className="p-6 pb-4 border-b border-gray-200">
+        <div className="shrink-0 p-6 pb-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-gray-600">Choose Voice</h2>
             <Button
@@ -176,7 +176,7 @@ export function ChooseVoiceModal({ open, onOpenChange, onSelectVoice, filter }: 
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
           {loading && (
             <div className="flex items-center justify-center py-16">
               <Loader />
