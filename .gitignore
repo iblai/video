@@ -25,3 +25,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+# lock files
+pnpm-lock.yaml
+
+# test artifacts
+/coverage
+/playwright-report
+/test-results
+/e2e/playwright/.auth
+/e2e/.env.development

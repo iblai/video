@@ -82,13 +82,13 @@ export function WatchSection() {
               <div className="flex flex-col items-center justify-center px-8 sm:px-12 md:px-16">
                 <Image
                   src="/images/videogenai-logo.png"
-                  alt="vidAI Logo"
+                  alt="videoAI Logo"
                   width={80}
                   height={80}
                   className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain mb-4"
                 />
                 <div className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#38A1E5] to-[#0078FF] bg-clip-text text-transparent">
-                  vidAI
+                  videoAI
                 </div>
               </div>
 

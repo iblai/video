@@ -116,16 +116,16 @@ export function AppSidebar() {
       <div className="relative" onMouseEnter={() => setHoveredItem(item.id)} onMouseLeave={() => setHoveredItem(null)}>
         {children}
         {hoveredItem === item.id && (
-          <div className="absolute left-full top-0 ml-4 z-50 bg-white border border-vidgen-stroke rounded-lg shadow-lg py-2 min-w-[200px]">
-            <div className="px-3 py-1 text-sm font-medium text-vidgen-text border-b border-vidgen-stroke mb-1">
+          <div className="absolute left-full top-0 ml-4 z-50 bg-white border border-videoai-stroke rounded-lg shadow-lg py-2 min-w-[200px]">
+            <div className="px-3 py-1 text-sm font-medium text-videoai-text border-b border-videoai-stroke mb-1">
               {item.label}
             </div>
             {item.children.map((child: any) => (
               <Link key={child.id} href={child.href || "#"}>
                 <div
                   className={cn(
-                    "px-3 py-2 text-sm text-vidgen-text hover:bg-vidgen-accent hover:text-vidgen-primary cursor-pointer",
-                    isActiveRoute(child.href || "") && "bg-vidgen-accent text-vidgen-primary font-medium",
+                    "px-3 py-2 text-sm text-videoai-text hover:bg-videoai-accent hover:text-videoai-primary cursor-pointer",
+                    isActiveRoute(child.href || "") && "bg-videoai-accent text-videoai-primary font-medium",
                   )}
                 >
                   {child.label}
@@ -141,13 +141,13 @@ export function AppSidebar() {
   const SidebarContent = ({ isMobileSheet = false }: { isMobileSheet?: boolean }) => (
     <TooltipProvider>
       <div className="flex flex-col h-full">
-        <div className={cn("px-4 pt-4 border-b border-vidgen-stroke pb-[15px]")}>
+        <div className={cn("px-4 pt-4 border-b border-videoai-stroke pb-[15px]")}>
           <div className="flex items-center gap-2 h-8">
             <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
-              <Image src="/images/videogenai-logo.png" alt="vidAI" width={24} height={24} />
+              <Image src="/images/videogenai-logo.png" alt="videoAI" width={24} height={24} />
             </div>
             <span className="font-semibold text-lg bg-gradient-to-r from-[#00B0EF] to-[#0058CC] bg-clip-text text-transparent">
-              vidAI
+              videoAI
             </span>
           </div>
         </div>
@@ -161,8 +161,8 @@ export function AppSidebar() {
                     <Button
                       variant="ghost"
                       className={cn(
-                        "w-full gap-2 text-vidgen-text hover:bg-vidgen-accent hover:text-vidgen-primary justify-start",
-                        isActiveRoute(item.href) && "bg-vidgen-accent text-vidgen-primary font-medium",
+                        "w-full gap-2 text-videoai-text hover:bg-videoai-accent hover:text-videoai-primary justify-start",
+                        isActiveRoute(item.href) && "bg-videoai-accent text-videoai-primary font-medium",
                       )}
                     >
                       <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -173,8 +173,8 @@ export function AppSidebar() {
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full gap-2 text-vidgen-text hover:bg-vidgen-accent hover:text-vidgen-primary justify-start",
-                      isParentSectionActive(item) && "bg-vidgen-accent text-vidgen-primary font-medium",
+                      "w-full gap-2 text-videoai-text hover:bg-videoai-accent hover:text-videoai-primary justify-start",
+                      isParentSectionActive(item) && "bg-videoai-accent text-videoai-primary font-medium",
                     )}
                     onClick={() => toggleExpanded(item.id)}
                   >
@@ -191,7 +191,7 @@ export function AppSidebar() {
 
                 {expandedItems.includes(item.id) && item.children.length > 0 && (
                   <div className="ml-6 mt-1 space-y-1 relative">
-                    <div className="absolute left-0 top-0 bottom-0 w-px bg-vidgen-stroke mr-2"></div>
+                    <div className="absolute left-0 top-0 bottom-0 w-px bg-videoai-stroke mr-2"></div>
                     {item.children.map((child) => (
                       <Link
                         key={child.id}
@@ -201,8 +201,8 @@ export function AppSidebar() {
                         <Button
                           variant="ghost"
                           className={cn(
-                            "w-full justify-start text-sm text-vidgen-text hover:bg-vidgen-accent hover:text-vidgen-primary pl-4",
-                            isActiveRoute(child.href || "") && "bg-vidgen-accent text-vidgen-primary font-medium",
+                            "w-full justify-start text-sm text-videoai-text hover:bg-videoai-accent hover:text-videoai-primary pl-4",
+                            isActiveRoute(child.href || "") && "bg-videoai-accent text-videoai-primary font-medium",
                           )}
                         >
                           {child.label}
@@ -232,18 +232,18 @@ export function AppSidebar() {
   return (
     <div
       className={cn(
-        "bg-white border-r border-vidgen-stroke flex flex-col relative transition-all duration-300",
+        "bg-white border-r border-videoai-stroke flex flex-col relative transition-all duration-300",
         isCollapsed ? "w-16" : "w-72",
       )}
     >
-      <div className={cn("px-4 pt-4 border-b border-vidgen-stroke", isCollapsed ? "pb-[15px]" : "pb-[15px]")}>
+      <div className={cn("px-4 pt-4 border-b border-videoai-stroke", isCollapsed ? "pb-[15px]" : "pb-[15px]")}>
         <div className="flex items-center gap-2 h-8">
           <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
-            <Image src="/images/videogenai-logo.png" alt="vidAI" width={24} height={24} />
+            <Image src="/images/videogenai-logo.png" alt="videoAI" width={24} height={24} />
           </div>
           {!isCollapsed && (
             <span className="font-semibold text-lg bg-gradient-to-r from-[#00B0EF] to-[#0058CC] bg-clip-text text-transparent">
-              vidAI
+              videoAI
             </span>
           )}
         </div>
@@ -251,7 +251,7 @@ export function AppSidebar() {
 
       <button
         onClick={toggleSidebar}
-        className="absolute -right-4 top-[18px] w-8 h-8 bg-white border border-vidgen-stroke rounded-lg flex items-center justify-center hover:bg-vidgen-accent transition-colors shadow-sm z-50"
+        className="absolute -right-4 top-[18px] w-8 h-8 bg-white border border-videoai-stroke rounded-lg flex items-center justify-center hover:bg-videoai-accent transition-colors shadow-sm z-50"
       >
         {isCollapsed ? (
           <ChevronRight className="w-4 h-4 text-gray-600" />
@@ -270,9 +270,9 @@ export function AppSidebar() {
                     <Button
                       variant="ghost"
                       className={cn(
-                        "w-full gap-2 text-vidgen-text hover:bg-vidgen-accent hover:text-vidgen-primary",
+                        "w-full gap-2 text-videoai-text hover:bg-videoai-accent hover:text-videoai-primary",
                         isCollapsed ? "justify-center px-2" : "justify-start",
-                        isActiveRoute(item.href) && "bg-vidgen-accent text-vidgen-primary font-medium",
+                        isActiveRoute(item.href) && "bg-videoai-accent text-videoai-primary font-medium",
                       )}
                     >
                       <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -283,9 +283,9 @@ export function AppSidebar() {
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full gap-2 text-vidgen-text hover:bg-vidgen-accent hover:text-vidgen-primary",
+                      "w-full gap-2 text-videoai-text hover:bg-videoai-accent hover:text-videoai-primary",
                       isCollapsed ? "justify-center px-2" : "justify-start",
-                      isParentSectionActive(item) && "bg-vidgen-accent text-vidgen-primary font-medium",
+                      isParentSectionActive(item) && "bg-videoai-accent text-videoai-primary font-medium",
                     )}
                     onClick={() => toggleExpanded(item.id)}
                   >
@@ -307,14 +307,14 @@ export function AppSidebar() {
 
               {!isCollapsed && expandedItems.includes(item.id) && item.children.length > 0 && (
                 <div className="ml-6 mt-1 space-y-1 relative">
-                  <div className="absolute left-0 top-0 bottom-0 w-px bg-vidgen-stroke mr-2"></div>
+                  <div className="absolute left-0 top-0 bottom-0 w-px bg-videoai-stroke mr-2"></div>
                   {item.children.map((child) => (
                     <Link key={child.id} href={child.href || "#"}>
                       <Button
                         variant="ghost"
                         className={cn(
-                          "w-full justify-start text-sm text-vidgen-text hover:bg-vidgen-accent hover:text-vidgen-primary pl-4",
-                          isActiveRoute(child.href || "") && "bg-vidgen-accent text-vidgen-primary font-medium",
+                          "w-full justify-start text-sm text-videoai-text hover:bg-videoai-accent hover:text-videoai-primary pl-4",
+                          isActiveRoute(child.href || "") && "bg-videoai-accent text-videoai-primary font-medium",
                         )}
                       >
                         {child.label}

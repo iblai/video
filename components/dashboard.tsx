@@ -69,7 +69,7 @@ export function Dashboard() {
               variant="outline"
               className={`rounded-lg px-4 py-3 border transition-all duration-200 ${
                 selectedModel === chip.id
-                  ? "bg-vidgen-accent border-vidgen-primary text-vidgen-primary shadow-sm"
+                  ? "bg-videoai-accent border-videoai-primary text-videoai-primary shadow-sm"
                   : "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
               }`}
               onClick={() => setSelectedModel(chip.id)}
@@ -93,7 +93,7 @@ export function Dashboard() {
           <CardContent className="p-6">
             {/* Model Info */}
             <div className="flex items-center gap-2 mb-4">
-              <span className="font-medium text-vidgen-text">
+              <span className="font-medium text-videoai-text">
                 {modelChips.find((m) => m.id === selectedModel)?.label}:
               </span>
               <Badge className="bg-orange-500 hover:bg-orange-600 text-white">New</Badge>
@@ -111,7 +111,7 @@ export function Dashboard() {
               placeholder="Describe what you'd like to generate or go to the generation settings..."
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              className="min-h-[100px] mb-4 border-gray-200 focus:border-vidgen-primary resize-none"
+              className="min-h-[100px] mb-4 border-gray-200 focus:border-videoai-primary resize-none"
             />
 
             {/* Bottom Actions */}
@@ -120,7 +120,7 @@ export function Dashboard() {
                 <FileText className="h-4 w-4" />
                 <span className="text-sm">My Prompts</span>
               </div>
-              <Button variant="ghost" className="text-vidgen-primary hover:bg-vidgen-accent">
+              <Button variant="ghost" className="text-videoai-primary hover:bg-videoai-accent">
                 Go To Setting
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
@@ -130,7 +130,7 @@ export function Dashboard() {
 
         {/* Newly Released Models */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-vidgen-text mb-6">Newly Released AI Models & Features</h2>
+          <h2 className="text-2xl font-bold text-videoai-text mb-6">Newly Released AI Models & Features</h2>
 
           <div className="flex gap-6 overflow-x-auto pb-4">
             {newModels.map((model) => (
@@ -142,7 +142,7 @@ export function Dashboard() {
                   <div className="flex">
                     {/* Content */}
                     <div className="flex-1 p-6">
-                      <h3 className="font-bold text-lg text-vidgen-text mb-2">{model.title}</h3>
+                      <h3 className="font-bold text-lg text-videoai-text mb-2">{model.title}</h3>
                       <p className="text-gray-600 text-sm leading-relaxed">{model.description}</p>
                     </div>
 
@@ -161,18 +161,18 @@ export function Dashboard() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-vidgen-stroke bg-white">
+      <footer className="border-t border-videoai-stroke bg-white">
         <div className="flex justify-between items-center text-xs text-gray-500 px-4 py-4">
           <div className="flex gap-6">
-            <a href="#" className="hover:text-vidgen-primary transition-colors">
+            <a href="#" className="hover:text-videoai-primary transition-colors">
               Privacy Policy
             </a>
-            <a href="#" className="hover:text-vidgen-primary transition-colors">
+            <a href="#" className="hover:text-videoai-primary transition-colors">
               Terms & Conditions
             </a>
           </div>
           <div className="text-gray-400">
-            Powered by <span className="text-vidgen-primary">ibl.ai</span> © 2025 ibl.ai
+            Powered by <span className="text-videoai-primary">ibl.ai</span> © 2025 ibl.ai
           </div>
         </div>
       </footer>

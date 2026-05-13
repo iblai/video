@@ -15,7 +15,7 @@ const _sourceSerif_4 = V0_Font_Source_Serif_4({
 const _v0_fontVariables = `${_sourceSerif_4.variable}`
 
 export const metadata: Metadata = {
-  title: "vidAI",
+  title: "videoAI",
   description: "AI-powered video generation platform",
     generator: 'v0.app'
 }

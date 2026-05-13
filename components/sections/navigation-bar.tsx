@@ -34,13 +34,13 @@ export function NavigationBar({
           <div className="flex items-center gap-3 flex-shrink-0">
             <Image
               src="/images/videogenai-logo.png"
-              alt="vidAI Logo"
+              alt="videoAI Logo"
               width={200}
               height={40}
               className="h-6 sm:h-8 w-auto"
             />
             <span className="text-xl font-bold bg-gradient-to-r from-[#38A1E5] to-[#0078FF] bg-clip-text text-transparent">
-              vidAI
+              videoAI
             </span>
           </div>
 

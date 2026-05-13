@@ -1,35 +1,35 @@
 @import "tailwindcss";
 @import './iblai-styles.css';
 
-/* Custom vidgenAI colors as Tailwind v4 theme tokens */
+/* Custom videoAI colors as Tailwind v4 theme tokens */
 @theme inline {
-  --color-vidgen-primary: #0376C1;
-  --color-vidgen-text: #515967;
-  --color-vidgen-accent: #F5F8FF;
-  --color-vidgen-stroke: #D0E0FF;
-  --color-vidgen-gradient-from: #00B0EF;
-  --color-vidgen-gradient-to: #0058CC;
+  --color-videoai-primary: #0376C1;
+  --color-videoai-text: #515967;
+  --color-videoai-accent: #F5F8FF;
+  --color-videoai-stroke: #D0E0FF;
+  --color-videoai-gradient-from: #00B0EF;
+  --color-videoai-gradient-to: #0058CC;
 
   /* Sidebar width tokens */
   --sidebar-width: 13rem;
   --sidebar-width-icon: 4.5rem;
 }
 
-/* Custom vidgenAI styles */
-.vidgen-gradient {
+/* Custom videoAI styles */
+.videoai-gradient {
   background: linear-gradient(135deg, #00b0ef 0%, #0058cc 100%);
 }
 
-.vidgen-text {
+.videoai-text {
   color: #515567;
 }
 
-.vidgen-primary {
+.videoai-primary {
   color: #0376c1;
 }
 
 /* Gradient text utility */
-.bg-vidgen-gradient {
+.bg-videoai-gradient {
   background: linear-gradient(135deg, #00b0ef 0%, #0058cc 100%);
 }
 

@@ -72,7 +72,7 @@ export function PricingSection() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-4 h-4" style={{ color: "#254dee" }} />
-                    <span className="text-sm text-gray-700">Remove vidAI watermark</span>
+                    <span className="text-sm text-gray-700">Remove videoAI watermark</span>
                   </div>
                 </div>
                 <div className="text-sm font-medium text-gray-600 mb-3 mt-6">INCLUDES</div>

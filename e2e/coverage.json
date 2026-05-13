@@ -1,0 +1,168 @@
+{
+  "version": 2,
+  "lastUpdated": "2026-05-12",
+  "notes": "Real run results — not aspirational. The SDK <AuthProvider enableStorageSync> redirects roughly every page load a few seconds after mount; e2e/utils/visit.ts catches the first leave and re-navigates, but the sync can fire again and race slower assertions. Which specific checkpoints fail varies run-to-run; the seven below are the ones that failed in the latest run on this login. Flip back to covered once the storage-sync race is solved (likely needs an enableStorageSync=false escape hatch in IblaiProviders for the test env).",
+  "summary": {
+    "totalCheckpoints": 17,
+    "coveredCheckpoints": 10,
+    "deprecatedCheckpoints": 0,
+    "percent": 59,
+    "totalJourneys": 8,
+    "activeJourneys": 8
+  },
+  "journeys": [
+    {
+      "id": "home-redirect",
+      "name": "Home Redirect",
+      "spec": "01-home-redirect.spec.ts",
+      "sourceFiles": ["app/page.tsx", "lib/iblai/auth-utils.ts"],
+      "checkpoints": [
+        {
+          "id": "home-01",
+          "description": "Authenticated user is redirected from / to /ai-avatar/generate",
+          "status": "covered"
+        }
+      ]
+    },
+    {
+      "id": "sidebar-navigation",
+      "name": "Sidebar Navigation",
+      "spec": "02-sidebar-navigation.spec.ts",
+      "sourceFiles": ["components/app-sidebar.tsx"],
+      "checkpoints": [
+        { "id": "nav-01", "description": "/ai-avatar/generate mounts cleanly", "status": "covered" },
+        { "id": "nav-02", "description": "/ai-avatar/my mounts cleanly", "status": "covered" },
+        { "id": "nav-03", "description": "/scripts/add mounts cleanly", "status": "covered" },
+        {
+          "id": "nav-04",
+          "description": "/videos/generate mounts cleanly",
+          "status": "uncovered",
+          "reason": "SDK storage-sync redirect races the assertion"
+        },
+        { "id": "nav-05", "description": "/videos/my mounts cleanly", "status": "covered" },
+        { "id": "nav-06", "description": "/videos/prompts mounts cleanly", "status": "covered" },
+        { "id": "nav-07", "description": "/community mounts cleanly", "status": "covered" }
+      ]
+    },
+    {
+      "id": "community",
+      "name": "Community",
+      "spec": "03-community.spec.ts",
+      "sourceFiles": ["app/community/page.tsx", "lib/heygen/rest.ts"],
+      "checkpoints": [
+        {
+          "id": "community-01",
+          "description": "Renders search input + populates video grid from main tenant",
+          "status": "covered"
+        },
+        {
+          "id": "community-02",
+          "description": "Search box debounces and re-issues the list-videos request with title=",
+          "status": "uncovered",
+          "reason": "SDK storage-sync redirect fires after the search input is filled"
+        }
+      ]
+    },
+    {
+      "id": "scripts",
+      "name": "Create Script",
+      "spec": "04-scripts.spec.ts",
+      "sourceFiles": [
+        "app/scripts/add/page.tsx",
+        "lib/heygen/rest.ts",
+        "lib/scripts/extract-text.ts"
+      ],
+      "checkpoints": [
+        {
+          "id": "scripts-01",
+          "description": "Renders editor, AI Script panel, and AI Help button on mount",
+          "status": "covered"
+        },
+        {
+          "id": "scripts-02",
+          "description": "Switches between Text / Audio / Files tabs",
+          "status": "uncovered",
+          "reason": "SDK storage-sync redirect races the tab click assertions"
+        }
+      ]
+    },
+    {
+      "id": "prompts",
+      "name": "Prompt Gallery",
+      "spec": "05-prompt-gallery.spec.ts",
+      "sourceFiles": ["app/videos/prompts/page.tsx", "lib/iblai/catalog.ts"],
+      "checkpoints": [
+        {
+          "id": "prompts-01",
+          "description": "Empty state renders Add Prompt button + no-prompts message + tabs",
+          "status": "uncovered",
+          "reason": "Flaky against SDK storage-sync — passed on prior run, failed this run"
+        },
+        {
+          "id": "prompts-02",
+          "description": "Catalog results render as cards with title + description",
+          "status": "covered"
+        }
+      ]
+    },
+    {
+      "id": "videos",
+      "name": "Video Clips",
+      "spec": "06-videos.spec.ts",
+      "sourceFiles": [
+        "app/videos/generate/page.tsx",
+        "app/videos/my/page.tsx",
+        "components/video-generator.tsx"
+      ],
+      "checkpoints": [
+        {
+          "id": "videos-01",
+          "description": "Generate page renders upload pane, voice selector, Generate button",
+          "status": "uncovered",
+          "reason": "SDK storage-sync redirect catches the slower button assertions"
+        },
+        {
+          "id": "videos-02",
+          "description": "My Video Clips page mounts without dev error overlay",
+          "status": "covered"
+        }
+      ]
+    },
+    {
+      "id": "voices",
+      "name": "Create Voice",
+      "spec": "07-voices.spec.ts",
+      "sourceFiles": ["app/voices/create/page.tsx", "lib/heygen/rest.ts"],
+      "checkpoints": [
+        {
+          "id": "voices-01",
+          "description": "Renders voice details form and disabled Create Voice button before upload",
+          "status": "uncovered",
+          "reason": "Flaky against SDK storage-sync — passed on prior run, failed this run"
+        }
+      ]
+    },
+    {
+      "id": "ai-avatars",
+      "name": "AI Avatars",
+      "spec": "08-ai-avatars.spec.ts",
+      "sourceFiles": [
+        "app/ai-avatar/generate/page.tsx",
+        "app/ai-avatar/my/page.tsx"
+      ],
+      "checkpoints": [
+        {
+          "id": "ai-avatars-01",
+          "description": "/ai-avatar/generate renders the upload + naming UI",
+          "status": "covered"
+        },
+        {
+          "id": "ai-avatars-02",
+          "description": "/ai-avatar/my mounts the gallery shell",
+          "status": "uncovered",
+          "reason": "SDK storage-sync redirect catches the gallery shell render"
+        }
+      ]
+    }
+  ]
+}

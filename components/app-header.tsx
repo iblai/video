@@ -16,7 +16,7 @@ export function AppHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-vidgen-stroke bg-white px-6">
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-videoai-stroke bg-white px-6">
       {isMobile && (
         <Button
           variant="ghost"

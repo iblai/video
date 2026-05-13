@@ -269,7 +269,7 @@ Best regards,
               <div className="w-px h-4 bg-gray-300"></div>
               <span className="text-sm text-gray-600">
                 Want to create a Studio AI Avatar?{" "}
-                <button onClick={handleContactUs} className="text-vidgen-primary hover:underline font-medium">
+                <button onClick={handleContactUs} className="text-videoai-primary hover:underline font-medium">
                   Contact Us
                 </button>
               </span>
@@ -458,7 +458,7 @@ Best regards,
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-lg font-semibold text-[#4E5460]">Start with video</h3>
-                    <span className="bg-vidgen-accent text-vidgen-primary border border-vidgen-stroke text-xs px-2 py-1 rounded font-medium">
+                    <span className="bg-videoai-accent text-videoai-primary border border-videoai-stroke text-xs px-2 py-1 rounded font-medium">
                       Most realistic
                     </span>
                   </div>

@@ -13,9 +13,9 @@ export function FAQSection() {
 
   const faqData = [
     {
-      question: "How does vidAI generate videos from text?",
+      question: "How does videoAI generate videos from text?",
       answer:
-        "vidAI uses advanced AI models to convert your text input into realistic, on-demand, and interactive AI avatars and video clips. Enter your script, choose an avatar and voice, and our AI will generate a professional video in seconds.",
+        "videoAI uses advanced AI models to convert your text input into realistic, on-demand, and interactive AI avatars and video clips. Enter your script, choose an avatar and voice, and our AI will generate a professional video in seconds.",
     },
     {
       question: "What AI models are available for video generation?",
@@ -30,27 +30,27 @@ export function FAQSection() {
     {
       question: "What video formats can I export?",
       answer:
-        "vidAl supports multiple export formats, including MP4, MOV, and WebM, with a maximum size of 100MB. You can choose different resolutions and quality settings based on your needs. Supported picture formats include JPG, GIF, and WEBP, with a maximum size of 10MB.",
+        "videoAI supports multiple export formats, including MP4, MOV, and WebM, with a maximum size of 100MB. You can choose different resolutions and quality settings based on your needs. Supported picture formats include JPG, GIF, and WEBP, with a maximum size of 10MB.",
     },
     {
-      question: "Can I use vidAI for commercial purposes?",
+      question: "Can I use videoAI for commercial purposes?",
       answer:
-        "Yes, videos generated with vidAl can be used for commercial purposes, including education, marketing, social media, and business presentations.",
+        "Yes, videos generated with videoAI can be used for commercial purposes, including education, marketing, social media, and business presentations.",
     },
     {
-      question: "Is there a free version of vidAI?",
+      question: "Is there a free version of videoAI?",
       answer:
         "Yes! We offer a free tier that includes basic video generation capabilities. Premium plans unlock additional features, more AI models, and higher-quality exports.",
     },
     {
       question: "Can I edit the generated videos?",
       answer:
-        "Currently, vidAl focuses on generating complete videos from text. For editing, you can download your videos and use external video editing software.",
+        "Currently, videoAI focuses on generating complete videos from text. For editing, you can download your videos and use external video editing software.",
     },
     {
       question: "What languages are supported?",
       answer:
-        "vidAl supports multiple languages for both text input and voice generation. Our AI avatars can speak in various languages with natural pronunciation.",
+        "videoAI supports multiple languages for both text input and voice generation. Our AI avatars can speak in various languages with natural pronunciation.",
     },
   ]
 
@@ -144,7 +144,7 @@ export function FAQSection() {
 
               <div>
                 <label htmlFor="impact" className="block text-sm font-medium text-gray-700 mb-1">
-                  How does this issue limit your use of vidAI?
+                  How does this issue limit your use of videoAI?
                 </label>
                 <Select>
                   <SelectTrigger className="w-full h-10 border border-gray-300 rounded-md">
