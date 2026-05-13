@@ -20,6 +20,13 @@ An AI video studio for generating avatar videos, cloning voices, and authoring s
 
 The demo on Vercel is [here](https://vercel-vidai.vercel.app/).
 
+![AI Avatar generation](https://raw.githubusercontent.com/iblai/vidai/main/docs/screenshots/avatar-generation.png)
+
+![Video clip generator](https://raw.githubusercontent.com/iblai/vidai/main/docs/screenshots/video-clip-generation.png)
+
+![Script editor with AI Help](https://raw.githubusercontent.com/iblai/vidai/main/docs/screenshots/script-generation.png)
+
+
 
 
 videoAI is an end-to-end video generation workspace. Pick or create an avatar, clone a voice, write or transcribe a script, and generate a finished video — all from one shell powered by the [@iblai/iblai-js](https://www.npmjs.com/package/@iblai/iblai-js) SDK and connected to `iblai.app`. The HeyGen and OpenAI API keys are never called directly from the browser: tenant-scoped server proxies resolve the integration credentials through ibl.ai API and forward each request upstream.
@@ -43,9 +50,6 @@ videoAI is an end-to-end video generation workspace. Pick or create an avatar, c
 | **Tenant Switching** | Switch between tenants from the avatar dropdown (uses `/login/complete` so the JWT is preserved across the switch) |
 | **SSO Authentication** | Login via `iblai.app` — no tokens to manage |
 
-![AI Avatar generation](https://raw.githubusercontent.com/iblai/vidai/main/docs/screenshots/avatar-generation.png)
-![Video clip generator](https://raw.githubusercontent.com/iblai/vidai/main/docs/screenshots/video-clip-generation.png)
-![Script editor with AI Help](https://raw.githubusercontent.com/iblai/vidai/main/docs/screenshots/script-generation.png)
 
 ## Quick Start
 
