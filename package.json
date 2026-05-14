@@ -14,7 +14,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test --config=e2e/playwright.config.ts"
+    "test:e2e": "playwright test --config=e2e/playwright.config.ts",
+    "release": "release-it"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -89,6 +90,7 @@
     "@vitest/coverage-v8": "^4.1.6",
     "dotenv": "^17.4.2",
     "jsdom": "^29.1.1",
+    "release-it": "^20.0.1",
     "tailwind-scrollbar": "^4.0.2",
     "typescript": "6.0.2",
     "vite-tsconfig-paths": "^6.1.1",

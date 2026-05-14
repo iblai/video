@@ -187,6 +187,27 @@ echo 'VERCEL_TOKEN=<token>' >> iblai.env
 ```
 
 > **Tip 1:** You can change the vercel domain name by clicking on the three-dot button on your Vercel project on [`vercel.com`](https://vercel.com) and select "Manage Domains".
+
+### Releasing
+
+Releases are automated via [`release-it`](https://github.com/release-it/release-it)
++ GitHub Actions. Every push to `main` triggers `.github/workflows/release.yml`,
+which runs `pnpm release --ci`. release-it bumps the version (per
+`.release-it.json`), updates `CHANGELOG.md`, commits with
+`chore(release): v${version}`, tags `v${version}`, pushes, and cuts a
+GitHub Release. The workflow skips its own release commits so the loop
+terminates.
+
+To release locally:
+
+```bash
+pnpm release            # interactive prompts for version bump
+pnpm release --ci       # non-interactive (used by CI)
+```
+
+`secrets.GIT_TOKEN` (a PAT with `contents: write`) must be configured on the
+repository for the workflow to push the version commit and tag.
+
 ## Project Structure
 
 ```
