@@ -20,7 +20,7 @@ An AI video studio for generating avatar videos, cloning voices, and authoring s
 
 The demo on Vercel is [here](https://vercel-vidai.vercel.app/).
 
-Checkout the video demo:
+Watch the video demo here:
 
 [![AI Avatar generation](https://raw.githubusercontent.com/iblai/vidai/main/docs/screenshots/avatar-generation.png)](https://drive.google.com/file/d/1ap5Rqxq34gBi9kOncHQyupHeyEn5TGFM/view?usp=sharing)
 
