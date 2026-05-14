@@ -186,6 +186,7 @@ Override detection with `--mode static` or `--mode server` when needed. Full gui
 echo 'VERCEL_TOKEN=<token>' >> iblai.env
 ```
 
+> **Tip 1:** You can change the vercel domain name by clicking on the three-dot button on your Vercel project on [`vercel.com`](https://vercel.com) and select "Manage Domains".
 ## Project Structure
 
 ```
