@@ -53,7 +53,12 @@ test.describe("Community", () => {
       },
     });
     await visit(page, "/community");
-    await expect(page.getByText("Sample Video").first()).toBeVisible();
+    // TenantProvider can hold the LOADING fallback for a couple seconds
+    // while it resolves getUserTenants — give the initial grid render
+    // the same headroom community-01 does.
+    await expect(page.getByText("Sample Video").first()).toBeVisible({
+      timeout: 15_000,
+    });
 
     await page.getByPlaceholder(/search by title/i).fill("zzz");
     await expect(page.getByText(/no videos found/i)).toBeVisible({

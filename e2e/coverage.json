@@ -1,12 +1,12 @@
 {
-  "version": 3,
-  "lastUpdated": "2026-05-13",
-  "notes": "Real run results — not aspirational. The fix for the dominant flake (SDK <AuthProvider enableStorageSync>) is wired through NEXT_PUBLIC_DISABLE_STORAGE_SYNC, set in playwright.config.ts before the dev server boots. When tests run against an externally-managed dev server (E2E_BASE_URL=...), that flag must be exported into the dev server's env or the storage-sync race resurfaces. Latest runs on a server that did NOT have the flag swung between 15-17 passes / 8-13 fails out of 28; treat anything below the 95% target as 'storage-sync flag not propagated to the dev server', not 'test broken'.",
+  "version": 4,
+  "lastUpdated": "2026-05-14",
+  "notes": "Real run results. 28/28 passing in 1m 30s on a dev server started with NEXT_PUBLIC_DISABLE_STORAGE_SYNC=1. Key infrastructure: the `<nextjs-portal>` count assertion was scoped to `[data-nextjs-toast-errors-parent]` since the always-on Next 16 Dev Tools button lives in the same custom element; `setupFakes` stubs the DM `integration-credential` probe so HeygenGuard doesn't gate journeys on SSO tenants without a configured key (the admin-gate and heygen-gate specs override these stubs to test the negative branches); the LMS `/users/manage/platform/` endpoint is intentionally NOT stubbed so the real SSO user's `is_admin: true` clears AdminGuard.",
   "summary": {
     "totalCheckpoints": 27,
-    "coveredCheckpoints": 15,
+    "coveredCheckpoints": 27,
     "deprecatedCheckpoints": 0,
-    "percent": 56,
+    "percent": 100,
     "totalJourneys": 13,
     "activeJourneys": 13
   },

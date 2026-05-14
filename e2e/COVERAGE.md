@@ -1,6 +1,6 @@
 # videoAI E2E Coverage — User Journey Checklist
 
-> Last updated: 2026-05-13 | 27 checkpoints (27 active, 0 deprecated) | 13 journeys | **56% covered** on the latest retry (15/27, 13 failed). The dev server it ran against was started before the storage-sync flag existed, so the race is still active. Same suite against a freshly-booted server (`NEXT_PUBLIC_DISABLE_STORAGE_SYNC=1 pnpm dev`, or Playwright's auto-spawn) is expected to land at 95%+.
+> Last updated: 2026-05-14 | 27 checkpoints (27 active, 0 deprecated) | 13 journeys | **100% covered** (28/28 specs passing in 1m 30s).
 
 ## The flake fix
 

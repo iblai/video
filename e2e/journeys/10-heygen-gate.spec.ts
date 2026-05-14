@@ -5,7 +5,8 @@ import { visit } from "../utils/visit";
 /**
  * When the tenant has no HeyGen integration credential configured,
  * HeygenGuard replaces the app shell with a "HeyGen integration
- * required" message + Contact + Log out CTAs.
+ * required" message + Contact CTA. Logout / tenant-switching is
+ * available via the profile dropdown in the navbar above.
  */
 test.describe("HeyGen integration gate", () => {
   test("blocks the app when the credential lookup returns an empty list", async ({
@@ -26,12 +27,10 @@ test.describe("HeyGen integration gate", () => {
     await expect(
       page.getByRole("heading", { name: /heygen integration required/i }),
     ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("424")).toBeVisible();
     await expect(
       page.getByRole("link", { name: /contact ibl\.ai/i }),
     ).toHaveAttribute("href", "https://ibl.ai/contact");
-    await expect(
-      page.getByRole("button", { name: /log out/i }),
-    ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: /generate ai avatar/i }),
     ).toHaveCount(0);
