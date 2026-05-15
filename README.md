@@ -4,7 +4,7 @@
 
 # videoAI
 
-An AI video studio for generating avatar videos, cloning voices, and authoring scripts — built on the ibl.ai platform with HeyGen and OpenAI under the hood.
+An AI video studio for generating avatar videos, cloning voices, and authoring scripts.
 
 [![Next.js](https://img.shields.io/badge/Next.js-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -18,7 +18,6 @@ An AI video studio for generating avatar videos, cloning voices, and authoring s
 ## What is videoAI
 
 
-The demo on Vercel is [here](https://vercel-vidai.vercel.app/).
 
 Watch the video demo here:
 
@@ -33,13 +32,12 @@ More screenshots:
 
 
 
-videoAI is an end-to-end video generation workspace. Pick or create an avatar, clone a voice, write or transcribe a script, and generate a finished video — all from one shell powered by the [@iblai/iblai-js](https://www.npmjs.com/package/@iblai/iblai-js) SDK and connected to `iblai.app`. The HeyGen and OpenAI API keys are never called directly from the browser: tenant-scoped server proxies resolve the integration credentials through ibl.ai API and forward each request upstream.
+videoAI is an end-to-end video generation workspace. Pick or create an avatar, clone a voice, write or transcribe a script, and generate a finished video — all from one web app powered by the [@iblai/iblai-js](https://www.npmjs.com/package/@iblai/iblai-js) SDK and connected to `iblai.app`. The HeyGen and OpenAI API keys are never called directly from the browser: tenant-scoped server proxies resolve the integration credentials through ibl.ai API and forward each request upstream.
 
 | Feature | Description |
 |---------|-------------|
 | **Video Clip Generation** | Image-to-video via HeyGen `/v3/videos` — upload a reference image, pick a voice, write a script, and add an optional motion prompt |
 | **Avatar Videos** | Generate full avatar videos from script + voice + avatar via HeyGen `/v2/video/generate` |
-| **AI Avatars** | Browse the public HeyGen library, manage private avatars, generate photo avatars (`/v2/photo_avatar/*`), and create digital twins from video uploads (`/v3/avatars`) |
 | **Interactive Avatars** | Real-time streaming avatars via HeyGen `/v1/streaming.*` + LiveKit — the browser joins LiveKit directly after the proxy creates the session |
 | **Voice Cloning** | Clone any voice from an audio sample via HeyGen `/v3/voices/clone`; cloned voices are registered as `heygen_private_voice` catalog resources so every user on the tenant can find them |
 | **Voice Library** | Paginated voice picker that merges tenant-curated private voices with HeyGen's public library, deduped by voice id |
@@ -47,12 +45,6 @@ videoAI is an end-to-end video generation workspace. Pick or create an avatar, c
 | **Prompt Gallery** | Tenant-shared prompt library backed by catalog `video_prompt` resources — create, edit (delete + recreate), delete, and copy prompts |
 | **Community** | Platform-wide video grid pulled from the `main` tenant's HeyGen library, with title search and cursor-based pagination |
 | **My Videos** | Per-user gallery of generated videos with live status polling and player modal |
-| **Admin / HeyGen Gates** | Non-admins on a tenant or tenants without a HeyGen integration credential see a full-screen gate with Contact ibl.ai + Switch tenant (via the profile dropdown) + Log out |
-| **Profile** | Edit basic info, social links, education, experience, resume, and avatar via the SDK `<UserProfileDropdown>` + `<Profile>` |
-| **Account** | Organization settings, user management, integrations, advanced, and billing tabs |
-| **Notifications** | Header dropdown via the SDK's `<NotificationDropdown>` + dedicated `/notifications` page |
-| **Tenant Switching** | Switch between tenants from the avatar dropdown (uses `/login/complete` so the JWT is preserved across the switch) |
-| **SSO Authentication** | Login via `iblai.app` — no tokens to manage |
 
 
 ## Quick Start
@@ -60,15 +52,18 @@ videoAI is an end-to-end video generation workspace. Pick or create an avatar, c
 ### Prerequisites
 
 - Node.js 18+
-- pnpm (fall back to npm only if unavailable)
+- pnpm (use `npm` only if `pnpm` is unavailable)
 - An ibl.ai login
 - A HeyGen integration credential registered on your tenant via the ibl.ai `ai-account` service (the app gates itself with a "HeyGen integration required" screen when this is missing)
 - An OpenAI API key, exported as `OPENAI_API_KEY` server-side (used by the `/api/openai/*` proxy for Whisper, AI Help, and motion-prompt enhancement)
 - The `iblai` CLI — install from source (see below)
 
+### Configure HeyGen key
+Create an integration credential object on one of ibl.ai's apps, name it `"heygen"` and add your HeyGen API key.
+
 ### Install the `iblai` CLI
 
-The CLI is installed from source via `make`. `clone + make install` is the supported install path — the version you run tracks the templates the team is editing.
+The CLI is installed from source via `make`. `clone + make install` is the supported install path.
 
 **macOS / Linux** (Python 3.11+, pip, git, make):
 
@@ -105,13 +100,14 @@ iblai --version
 ### Install & Run
 
 ```bash
+cp .env.example .env.local 
 pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). You'll be redirected to `https://login.iblai.app` for SSO; on return, your tenant + DM token are resolved from the SDK and every HeyGen / OpenAI call is proxied through `/api/heygen/*` and `/api/openai/*` using credentials registered server-side.
+Open [http://localhost:3000](http://localhost:3000). You'll be redirected to `https://login.iblai.app` for SSO and you will return to the `videoAI` app after auth.
 
-`.env.local` is already populated with the iblai.app endpoints — no manual platform credentials are needed up front.
+`.env.local` is populated with the iblai.app endpoints — no manual platform credentials are needed up front.
 
 ### Build
 
@@ -143,7 +139,6 @@ Then:
 pnpm test:e2e            # spins up `next dev` on port 3100, runs auth.setup.ts once, then the journeys
 ```
 
-`e2e/auth.setup.ts` drives the SSO round-trip and writes the resulting `storageState` to `e2e/playwright/.auth/user.json`; every journey reuses it via the `chromium` project's `dependencies: ["setup"]`. HeyGen + ibl.ai catalog + OpenAI calls are stubbed per-journey by `e2e/utils/heygen-mocks.ts` for predictable rendering. The SDK's cross-tab `enableStorageSync` race is disabled in the test env via `NEXT_PUBLIC_DISABLE_STORAGE_SYNC=1` (build-time) or `localStorage.__disable_storage_sync=1` (runtime, set by Playwright). Journey coverage lives in `e2e/COVERAGE.md` + `e2e/coverage.json`.
 
 ### Environment variables
 
@@ -167,6 +162,15 @@ NEXT_PUBLIC_DISABLE_STORAGE_SYNC=
 
 ### Deploy to Vercel
 
+
+**Setup:** generate a Vercel token at [https://vercel.com/account/tokens](https://vercel.com/account/tokens) and add it to `iblai.env`:
+
+```bash
+echo 'VERCEL_TOKEN=<token>' >> iblai.env
+```
+
+And then deploy:
+
 ```bash
 iblai deploy vercel
 ```
@@ -180,23 +184,13 @@ The CLI auto-detects the deploy mode from `next.config.mjs`. videoAI is a server
 
 Override detection with `--mode static` or `--mode server` when needed. Full guide: [`/iblai-ops-deploy`](https://github.com/iblai/vibe/blob/main/skills/iblai-ops-deploy/SKILL.md).
 
-**Setup:** generate a Vercel token at [https://vercel.com/account/tokens](https://vercel.com/account/tokens) and add it to `iblai.env`:
 
-```bash
-echo 'VERCEL_TOKEN=<token>' >> iblai.env
-```
-
-> **Tip 1:** You can change the vercel domain name by clicking on the three-dot button on your Vercel project on [`vercel.com`](https://vercel.com) and select "Manage Domains".
+> **Tip:** You can change the vercel domain name by clicking on the three-dot button on your Vercel project on [`vercel.com`](https://vercel.com) and select "Manage Domains".
 
 ### Releasing
 
 Releases are automated via [`release-it`](https://github.com/release-it/release-it)
-+ GitHub Actions. Every push to `main` triggers `.github/workflows/release.yml`,
-which runs `pnpm release --ci`. release-it bumps the version (per
-`.release-it.json`), updates `CHANGELOG.md`, commits with
-`chore(release): v${version}`, tags `v${version}`, pushes, and cuts a
-GitHub Release. The workflow skips its own release commits so the loop
-terminates.
++ GitHub Actions. Every push to `main` triggers `pnpm release --ci` via GitHub Actions, and release-it bumps the version and cuts a GitHub Release. 
 
 To release locally:
 
@@ -204,9 +198,6 @@ To release locally:
 pnpm release            # interactive prompts for version bump
 pnpm release --ci       # non-interactive (used by CI)
 ```
-
-`secrets.GIT_TOKEN` (a PAT with `contents: write`) must be configured on the
-repository for the workflow to push the version commit and tag.
 
 ## Project Structure
 
@@ -306,16 +297,12 @@ providers/
 
 ### Adding Features
 
-Use the iblai CLI and Claude Code skills to add new features:
+Use the iblai CLI and/or Claude Code skills to add new features:
 
 ```bash
-iblai add auth           # SSO authentication
 iblai add chat           # AI chat widget
-iblai add profile        # User profile
-iblai add account        # Account/org settings
-iblai add analytics      # Analytics dashboard
-iblai add notification   # Notification bell
 iblai add invite         # Invite dialogs
+...
 ```
 
 ## Resources
