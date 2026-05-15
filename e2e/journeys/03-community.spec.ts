@@ -18,40 +18,10 @@ test.describe("Community", () => {
     });
   });
 
-  test("search box debounces and re-issues the list request", async ({
+  test("search box filters the grid in-memory after the debounce", async ({
     page,
   }) => {
-    const titleQueries: string[] = [];
-    await setupFakes(page, {
-      heygenOverrides: {
-        "v3/videos": async (route) => {
-          const url = new URL(route.request().url());
-          const q = url.searchParams.get("title") ?? "";
-          titleQueries.push(q);
-          await route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify({
-              data: q
-                ? []
-                : [
-                    {
-                      id: "video-1",
-                      title: "Sample Video",
-                      status: "completed",
-                      video_url: "https://example.com/video.mp4",
-                      thumbnail_url: "https://example.com/thumb.png",
-                      duration: 12,
-                      created_at: 1700000000,
-                    },
-                  ],
-              has_more: false,
-              next_token: null,
-            }),
-          });
-        },
-      },
-    });
+    await setupFakes(page);
     await visit(page, "/community");
     // TenantProvider can hold the LOADING fallback for a couple seconds
     // while it resolves getUserTenants — give the initial grid render
@@ -61,9 +31,11 @@ test.describe("Community", () => {
     });
 
     await page.getByPlaceholder(/search by title/i).fill("zzz");
+    // The page filters in-memory off the public-video resources it
+    // already pulled from the catalog — typing past the 400ms debounce
+    // should drop the only seeded clip and surface the empty-state.
     await expect(page.getByText(/no videos found/i)).toBeVisible({
       timeout: 10_000,
     });
-    expect(titleQueries).toContain("zzz");
   });
 });

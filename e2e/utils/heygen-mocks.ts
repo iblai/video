@@ -153,6 +153,47 @@ export async function mockCatalog(page: Page) {
     if (method === "DELETE") {
       return route.fulfill({ status: 204, body: "" });
     }
+    // The Community page reads `heygen_private_video` resources from
+    // the main tenant and filters for `visibility === "public"`. Seed
+    // that query with a single public video so the grid renders.
+    const url = new URL(route.request().url());
+    const isPublicVideoQuery =
+      url.searchParams.get("platform_key") === "main" &&
+      url.searchParams.get("resource_type") === "heygen_private_video";
+    if (isPublicVideoQuery) {
+      const titleFilter = (url.searchParams.get("title") ?? "").toLowerCase();
+      const sampleTitle = "Sample Video";
+      const matches =
+        !titleFilter || sampleTitle.toLowerCase().includes(titleFilter);
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          results: matches
+            ? [
+                {
+                  item_id: "res-pub-1",
+                  id: 1,
+                  name: sampleTitle,
+                  url: "",
+                  resource_type: "heygen_private_video",
+                  data: {
+                    id: "video-pub-1",
+                    title: sampleTitle,
+                    visibility: "public",
+                    video_url: "https://example.com/video.mp4",
+                    image_url: "https://example.com/thumb.png",
+                    duration: 12,
+                    created_at: 1700000000,
+                  },
+                  image: "",
+                  description: "",
+                },
+              ]
+            : [],
+        }),
+      });
+    }
     return route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -249,6 +290,89 @@ export async function mockUserTenants(
 }
 
 /**
+ * Stub the SDK's billing-account probe so `<CreditBalance>` doesn't
+ * surface a "failed to load credit balance" error when a journey
+ * happens to mount it. Returns a Free-plan envelope by default —
+ * enough for the trigger icon to render.
+ */
+export async function mockBillingAccount(page: Page) {
+  await page.route("**/api/billing/account/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        plan: "Free",
+        credits_remaining: 100,
+        credits_consumed: 0,
+        reset_date: null,
+      }),
+    });
+  });
+  await page.route("**/api/billing/platforms**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([]),
+    });
+  });
+}
+
+/**
+ * Force the user's tenants list (as returned by the SDK's
+ * `/users/manage/platform/` call) to carry both `is_admin: true` and
+ * `show_paywall: true` so `<IblaiCreditBalance>`'s gates resolve.
+ *
+ * Implementation note: also patches `localStorage.tenants` via
+ * `addInitScript`, but that copy is overwritten as soon as the SDK
+ * re-fetches the platform endpoint. The real fix is to intercept the
+ * upstream response, forward it, and rewrite each entry.
+ */
+export async function seedPaywallTenant(page: Page) {
+  await page.addInitScript(() => {
+    try {
+      const raw = localStorage.getItem("tenants");
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      const list = Array.isArray(parsed) ? parsed : [parsed];
+      const patched = list.map(
+        (t: Record<string, unknown>) =>
+          ({ ...t, is_admin: true, show_paywall: true }) as Record<
+            string,
+            unknown
+          >,
+      );
+      localStorage.setItem("tenants", JSON.stringify(patched));
+    } catch {
+      /* ignore */
+    }
+  });
+
+  await page.route("**/users/manage/platform/**", async (route) => {
+    try {
+      const response = await route.fetch();
+      const body = await response.json();
+      const list = Array.isArray(body) ? body : [body];
+      const patched = list.map((t: Record<string, unknown>) => ({
+        ...t,
+        is_admin: true,
+        show_paywall: true,
+      }));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(Array.isArray(body) ? patched : patched[0]),
+      });
+    } catch {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: "[]",
+      });
+    }
+  });
+}
+
+/**
  * Stub /api/heygen, /api/catalog, /api/openai, and the DM
  * `integration-credential` probe so journeys assert against
  * predictable data regardless of what the SSO tenant has provisioned.
@@ -276,4 +400,5 @@ export async function setupFakes(
   await mockCatalog(page);
   await mockOpenaiProxy(page, hooks.openaiOverrides);
   await mockIntegrationCredential(page);
+  await mockBillingAccount(page);
 }
