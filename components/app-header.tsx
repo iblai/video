@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { useSidebar } from "@/components/ui/sidebar"
 import { ProfileDropdown } from "@/components/iblai/profile-dropdown"
 import { IblaiNotificationBell } from "@/components/iblai/notification-bell"
+import { IblaiCreditBalance } from "@/components/iblai/credit-balance"
 import { useRouter } from "next/navigation"
 
 export function AppHeader() {
@@ -31,6 +32,7 @@ export function AppHeader() {
       <div className="flex-1" />
 
       <div className="flex items-center gap-4">
+        <IblaiCreditBalance />
         <IblaiNotificationBell
           onViewAll={() => router.push("/notifications")}
         />

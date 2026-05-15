@@ -27,13 +27,18 @@ interface ProfileDropdownProps {
 }
 
 export function ProfileDropdown({ className }: ProfileDropdownProps) {
-  const username = useMemo(() => {
-    if (typeof window === "undefined") return "";
+  const { username, email } = useMemo(() => {
+    if (typeof window === "undefined") return { username: "", email: "" };
     try {
       const raw = localStorage.getItem("userData");
-      return raw ? JSON.parse(raw).user_nicename ?? "" : "";
+      if (!raw) return { username: "", email: "" };
+      const parsed = JSON.parse(raw);
+      return {
+        username: parsed.user_nicename ?? parsed.username ?? "",
+        email: parsed.user_email ?? parsed.email ?? "",
+      };
     } catch {
-      return "";
+      return { username: "", email: "" };
     }
   }, []);
 
@@ -59,7 +64,9 @@ export function ProfileDropdown({ className }: ProfileDropdownProps) {
   return (
     <UserProfileDropdown
       username={username}
+      email={email}
       tenantKey={tenantKey}
+      mainPlatformKey={config.mainTenantKey()}
       userIsAdmin={isAdmin}
       userTenants={userTenants}
       currentTenant={currentTenant}

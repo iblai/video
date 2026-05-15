@@ -1,13 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 
-const listHeygenVideosPageMock = vi.fn();
+const listHeygenPrivateVideoResourcesMock = vi.fn();
 
-vi.mock("@/lib/heygen/rest", () => ({
-  listHeygenVideosPage: (...a: unknown[]) => listHeygenVideosPageMock(...a),
-}));
-vi.mock("@/lib/iblai/tenant", () => ({
-  resolveAppTenant: () => "main",
+vi.mock("@/lib/iblai/catalog", () => ({
+  listHeygenPrivateVideoResources: (...a: unknown[]) =>
+    listHeygenPrivateVideoResourcesMock(...a),
+  PUBLIC_VIDEO_TENANT: "main",
 }));
 vi.mock("next/image", () => ({
   __esModule: true,
@@ -23,21 +22,47 @@ vi.mock("@/components/modals/video-player-modal", () => ({
 
 import CommunityPage from "@/app/community/page";
 
+function publicResource(id: string, title: string) {
+  return {
+    item_id: `r-${id}`,
+    id: Number(id.replace(/\D/g, "")) || 1,
+    name: title,
+    data: {
+      id,
+      title,
+      visibility: "public" as const,
+      video_url: `https://example.com/${id}.mp4`,
+      image_url: `https://example.com/${id}.png`,
+      duration: 12,
+      created_at: 1700000000,
+    },
+    resource_type: "heygen_private_video",
+    image: "",
+    url: "",
+    description: "",
+  };
+}
+
 describe("CommunityPage", () => {
   beforeEach(() => {
-    listHeygenVideosPageMock.mockReset();
+    listHeygenPrivateVideoResourcesMock.mockReset();
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("renders the heading + search input", async () => {
-    listHeygenVideosPageMock.mockResolvedValue({
-      data: [],
-      has_more: false,
-      next_token: null,
-    });
+  it("queries the main tenant only", async () => {
+    listHeygenPrivateVideoResourcesMock.mockResolvedValue([]);
+    render(<CommunityPage />);
+    await waitFor(() =>
+      expect(listHeygenPrivateVideoResourcesMock).toHaveBeenCalledTimes(1),
+    );
+    expect(listHeygenPrivateVideoResourcesMock).toHaveBeenCalledWith("main");
+  });
+
+  it("renders the heading + search input", () => {
+    listHeygenPrivateVideoResourcesMock.mockResolvedValue([]);
     render(<CommunityPage />);
     expect(
       screen.getByRole("heading", { name: /community/i }),
@@ -45,60 +70,79 @@ describe("CommunityPage", () => {
     expect(screen.getByPlaceholderText(/search by title/i)).toBeInTheDocument();
   });
 
-  it("renders an empty-state message when no videos come back", async () => {
-    listHeygenVideosPageMock.mockResolvedValue({
-      data: [],
-      has_more: false,
-      next_token: null,
-    });
+  it("renders the empty-state when no public videos exist", async () => {
+    listHeygenPrivateVideoResourcesMock.mockResolvedValue([]);
     render(<CommunityPage />);
     await waitFor(() =>
-      expect(screen.getByText(/no videos yet/i)).toBeInTheDocument(),
+      expect(screen.getByText(/no public videos yet/i)).toBeInTheDocument(),
     );
   });
 
-  it("renders the video grid when results come back", async () => {
-    listHeygenVideosPageMock.mockResolvedValue({
-      data: [
-        {
-          id: "v1",
-          title: "Hello",
-          status: "completed",
-          video_url: "https://x/v.mp4",
-          thumbnail_url: "https://x/thumb.png",
-          duration: 12,
-          created_at: 1700000000,
-        },
-      ],
-      has_more: false,
-      next_token: null,
-    });
+  it("renders public video copies straight from the main-tenant catalog", async () => {
+    listHeygenPrivateVideoResourcesMock.mockResolvedValue([
+      publicResource("v1", "Hello"),
+      publicResource("v2", "Goodbye"),
+    ]);
     render(<CommunityPage />);
-    await waitFor(() => expect(screen.getByText("Hello")).toBeInTheDocument());
+    await waitFor(() => {
+      expect(screen.getByText("Hello")).toBeInTheDocument();
+      expect(screen.getByText("Goodbye")).toBeInTheDocument();
+    });
   });
 
-  it("falls back to an error empty state when the upstream throws", async () => {
-    listHeygenVideosPageMock.mockRejectedValueOnce(new Error("network"));
+  it("drops resources marked anything other than public", async () => {
+    listHeygenPrivateVideoResourcesMock.mockResolvedValue([
+      publicResource("v1", "Public one"),
+      {
+        ...publicResource("v2", "Platform"),
+        data: { ...publicResource("v2", "Platform").data, visibility: "platform" },
+      },
+      {
+        ...publicResource("v3", "Personal"),
+        data: { ...publicResource("v3", "Personal").data, visibility: "personal" },
+      },
+    ]);
+    render(<CommunityPage />);
+    await waitFor(() => expect(screen.getByText("Public one")).toBeInTheDocument());
+    expect(screen.queryByText("Platform")).not.toBeInTheDocument();
+    expect(screen.queryByText("Personal")).not.toBeInTheDocument();
+  });
+
+  it("drops public resources without an embedded video_url", async () => {
+    const broken = publicResource("v1", "Half-baked");
+    broken.data.video_url = "";
+    listHeygenPrivateVideoResourcesMock.mockResolvedValue([broken]);
     render(<CommunityPage />);
     await waitFor(() =>
-      expect(screen.getByText(/no videos/i)).toBeInTheDocument(),
+      expect(screen.getByText(/no public videos yet/i)).toBeInTheDocument(),
     );
   });
 
-  it("debounces and re-issues the list request when the search input changes", async () => {
-    listHeygenVideosPageMock.mockResolvedValue({
-      data: [],
-      has_more: false,
-      next_token: null,
-    });
+  it("filters the grid by the debounced search input", async () => {
+    listHeygenPrivateVideoResourcesMock.mockResolvedValue([
+      publicResource("welcome", "Welcome"),
+      publicResource("goodbye", "Goodbye"),
+    ]);
     render(<CommunityPage />);
+    await waitFor(() => expect(screen.getByText("Welcome")).toBeInTheDocument());
     fireEvent.change(screen.getByPlaceholderText(/search/i), {
-      target: { value: "abc" },
+      target: { value: "good" },
     });
-    // Debounce window is 400ms; wait for the second fetch.
     await waitFor(
-      () => expect(listHeygenVideosPageMock).toHaveBeenCalledTimes(2),
+      () =>
+        expect(screen.queryByText("Welcome")).not.toBeInTheDocument() &&
+        expect(screen.getByText("Goodbye")).toBeInTheDocument(),
       { timeout: 2000 },
+    );
+  });
+
+  it("falls back to an empty state when the upstream throws", async () => {
+    listHeygenPrivateVideoResourcesMock.mockRejectedValueOnce(
+      new Error("network"),
+    );
+    render(<CommunityPage />);
+    await waitFor(() =>
+      expect(screen.getByText(/no public videos yet/i)).toBeInTheDocument(),
     );
   });
 });

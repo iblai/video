@@ -255,7 +255,7 @@ describe("catalog", () => {
       expect(body.data).toEqual({ id: "g1" });
     });
 
-    it("creates a heygen_private_video with optional image_url", async () => {
+    it("creates a heygen_private_video with optional image_url and default visibility", async () => {
       fetchSpy.mockResolvedValueOnce(jsonResponse({ id: 1 }));
       await createHeygenPrivateVideoResource("acme", "v1", {
         image_url: "https://x/t.png",
@@ -264,7 +264,23 @@ describe("catalog", () => {
         (fetchSpy.mock.calls[0][1] as RequestInit).body as string,
       );
       expect(body.resource_type).toBe("heygen_private_video");
-      expect(body.data).toEqual({ id: "v1", image_url: "https://x/t.png" });
+      expect(body.data).toEqual({
+        id: "v1",
+        image_url: "https://x/t.png",
+        visibility: "platform",
+        username: "alice",
+      });
+    });
+
+    it("creates a heygen_private_video with an explicit visibility", async () => {
+      fetchSpy.mockResolvedValueOnce(jsonResponse({ id: 1 }));
+      await createHeygenPrivateVideoResource("acme", "v1", {
+        visibility: "public",
+      });
+      const body = JSON.parse(
+        (fetchSpy.mock.calls[0][1] as RequestInit).body as string,
+      );
+      expect(body.data).toMatchObject({ visibility: "public" });
     });
 
     it("creates a heygen_private_voice with all optional metadata", async () => {

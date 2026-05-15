@@ -12,11 +12,16 @@ import { RecordAudioModal } from "./record-audio-modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   createHeygenVideo,
+  getHeygenVideoStatus,
   resolveHeygenLookId,
   type HeygenVideoAspectRatio,
   type HeygenVideoResolution,
 } from "@/lib/heygen/rest"
-import { createHeygenPrivateVideoResource } from "@/lib/iblai/catalog"
+import {
+  createHeygenPrivateVideoResource,
+  publishVideoToMainTenant,
+  type VideoVisibility,
+} from "@/lib/iblai/catalog"
 import { resolveAppTenant } from "@/lib/iblai/tenant"
 
 interface CreateAvatarVideoModalProps {
@@ -48,6 +53,7 @@ export function CreateAvatarVideoModal({ open, onOpenChange, avatar }: CreateAva
 
   const [imageMode, setImageMode] = useState<"cover" | "contain">("cover")
   const [orientation, setOrientation] = useState<"landscape" | "portrait">("landscape")
+  const [visibility, setVisibility] = useState<VideoVisibility>("platform")
 
   const charLimit = 840
   const charCount = script.length
@@ -142,7 +148,24 @@ export function CreateAvatarVideoModal({ open, onOpenChange, avatar }: CreateAva
         await createHeygenPrivateVideoResource(platform, videoId, {
           name: title,
           image_url: avatar.image,
+          visibility,
         })
+        if (visibility === "public") {
+          try {
+            const detail = await getHeygenVideoStatus(videoId).catch(() => null)
+            await publishVideoToMainTenant({
+              videoId,
+              title,
+              videoUrl: detail?.video_url ?? "",
+              imageUrl: detail?.thumbnail_url ?? avatar.image,
+              duration: detail?.duration,
+              createdAt: detail?.created_at,
+              sourcePlatform: platform,
+            })
+          } catch (err) {
+            console.warn("[create-avatar-video] publish-to-main failed:", err)
+          }
+        }
 
         onOpenChange(false)
         window.location.href = "/videos/my"

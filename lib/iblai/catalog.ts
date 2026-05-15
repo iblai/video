@@ -22,6 +22,9 @@ export interface CatalogResource<TData = Record<string, unknown>> {
   data: TData;
   image: string;
   description: string;
+  /** Creator username, set server-side from the POST. May be undefined on
+   *  older records created before the field was tracked. */
+  username?: string;
 }
 
 /** Payload shape for `resource_type === "heygen_private_avatar"`. */
@@ -34,12 +37,50 @@ export interface HeygenPrivateAvatarResourceData {
 
 export type HeygenPrivateAvatarResource = CatalogResource<HeygenPrivateAvatarResourceData>;
 
+/**
+ * Visibility for a generated video.
+ *
+ * - `personal`: only the creator sees it in their My Videos page.
+ * - `platform`: every admin on the tenant where the video was created
+ *   sees it. Default.
+ * - `public`: every admin on any tenant the viewer has access to sees
+ *   it. The video is duplicated to the `main` tenant catalog with all
+ *   playable URLs embedded — Community reads from `main` only.
+ */
+export type VideoVisibility = "personal" | "platform" | "public";
+
+/** Tenant key where public-video copies live. */
+export const PUBLIC_VIDEO_TENANT = "main";
+
 /** Payload shape for `resource_type === "heygen_private_video"`. */
 export interface HeygenPrivateVideoResourceData {
   /** HeyGen video id. Passed as `{video_id}` to /v3/videos/{video_id}. */
   id: string;
   /** Preview thumbnail URL shown before HeyGen renders its own. */
   image_url?: string;
+  /**
+   * Self-contained playable URL — only set on the main-tenant public
+   * copy. HeyGen API keys are tenant-scoped, so callers reading the
+   * main tenant can't fetch the upstream HeyGen video details. We
+   * embed the asset URL here so the Community page can render directly
+   * without calling HeyGen.
+   */
+  video_url?: string;
+  /** Display title — set on main-tenant copies for the same reason. */
+  title?: string;
+  /** Seconds. Embedded on main-tenant copies. */
+  duration?: number;
+  /** Unix seconds. Embedded on main-tenant copies. */
+  created_at?: number;
+  /** Sharing scope. Defaults to `platform` when missing. */
+  visibility?: VideoVisibility;
+  /** Creator username, stashed in the payload as a redundant fallback so
+   *  the personal-visibility filter still works on backends that don't
+   *  echo `username` at the top level of the resource. */
+  username?: string;
+  /** When this record is the main-tenant copy of a public video, which
+   *  tenant the source lives on. */
+  source_platform?: string;
 }
 
 export type HeygenPrivateVideoResource = CatalogResource<HeygenPrivateVideoResourceData>;
@@ -331,15 +372,164 @@ export async function createHeygenPrivateVoiceResource(
 export async function createHeygenPrivateVideoResource(
   platform: string,
   videoId: string,
-  opts: { name?: string; image_url?: string } = {},
+  opts: {
+    name?: string;
+    image_url?: string;
+    /** Sharing scope. Defaults to `platform`. */
+    visibility?: VideoVisibility;
+  } = {},
 ): Promise<HeygenPrivateVideoResource> {
   return createCatalogResource<HeygenPrivateVideoResourceData>({
     platform,
     resource_type: "heygen_private_video",
-    data: { id: videoId, ...(opts.image_url ? { image_url: opts.image_url } : {}) },
+    data: {
+      id: videoId,
+      ...(opts.image_url ? { image_url: opts.image_url } : {}),
+      visibility: opts.visibility ?? "platform",
+      // Redundant: the DM POST already carries `username` in the body
+      // (per createCatalogResource), but stashing it in `data` keeps
+      // the personal-visibility filter robust against backends that
+      // don't echo top-level `username` on the list response.
+      username: getCurrentUsername(),
+    },
     name: opts.name,
     credentialsIn: "body",
   });
+}
+
+/**
+ * Mirror a public video onto the `main` tenant catalog with all
+ * playable URLs embedded directly in the data payload.
+ *
+ * The main tenant's HeyGen API key (if any) doesn't know about the
+ * source tenant's videos, so the Community page can't call
+ * `getHeygenVideoStatus` to resolve a play URL. We persist the URLs
+ * here at publish time so the Community page can render straight from
+ * the catalog response.
+ */
+export async function publishVideoToMainTenant(opts: {
+  videoId: string;
+  title: string;
+  videoUrl: string;
+  imageUrl: string;
+  duration?: number;
+  createdAt?: number;
+  sourcePlatform: string;
+}): Promise<HeygenPrivateVideoResource> {
+  return createCatalogResource<HeygenPrivateVideoResourceData>({
+    platform: PUBLIC_VIDEO_TENANT,
+    resource_type: "heygen_private_video",
+    data: {
+      id: opts.videoId,
+      image_url: opts.imageUrl,
+      video_url: opts.videoUrl,
+      title: opts.title,
+      duration: opts.duration,
+      created_at: opts.createdAt,
+      visibility: "public",
+      username: getCurrentUsername(),
+      source_platform: opts.sourcePlatform,
+    },
+    name: opts.title,
+    credentialsIn: "body",
+  });
+}
+
+/**
+ * Find and delete any main-tenant public copies of a HeyGen video.
+ * Used when a video's visibility flips away from `public`. Silently
+ * succeeds if no copy exists.
+ */
+export async function unpublishVideoFromMainTenant(
+  videoId: string,
+): Promise<void> {
+  let resources: HeygenPrivateVideoResource[];
+  try {
+    resources = await listHeygenPrivateVideoResources(PUBLIC_VIDEO_TENANT);
+  } catch {
+    return;
+  }
+  const matches = resources.filter((r) => r.data?.id === videoId);
+  for (const match of matches) {
+    try {
+      await deleteCatalogResource(match.id, {
+        platform: PUBLIC_VIDEO_TENANT,
+        resource_type: "heygen_private_video",
+      });
+    } catch (err) {
+      console.warn(
+        "[catalog] unpublishVideoFromMainTenant: delete failed",
+        match.id,
+        err,
+      );
+    }
+  }
+}
+
+/**
+ * Change the visibility on an existing video resource.
+ *
+ * The catalog has no update endpoint, so we delete the source record
+ * and re-create it with the new visibility. If the new visibility is
+ * `public`, we also mirror the record to the main tenant; if it's
+ * leaving `public`, we tear down the main-tenant mirror.
+ *
+ * Returns the freshly-created source resource. Callers MUST replace
+ * the stale resource in their local state with the returned one,
+ * otherwise the next visibility flip will try to delete a catalog id
+ * that no longer exists.
+ */
+export async function updateVideoVisibility(opts: {
+  resource: HeygenPrivateVideoResource;
+  platform: string;
+  nextVisibility: VideoVisibility;
+  /** Required when transitioning TO public. Embedded in the main copy. */
+  publishContext?: {
+    videoUrl: string;
+    imageUrl: string;
+    duration?: number;
+    createdAt?: number;
+  };
+}): Promise<HeygenPrivateVideoResource> {
+  const { resource, platform, nextVisibility, publishContext } = opts;
+  const currentVisibility = resource.data?.visibility ?? "platform";
+  const videoId = resource.data?.id;
+  if (!videoId) throw new Error("updateVideoVisibility: resource has no video id");
+
+  // Re-create the source record with the new visibility (delete first
+  // because the catalog has no update endpoint).
+  await deleteCatalogResource(resource.id, {
+    platform,
+    resource_type: "heygen_private_video",
+  });
+  const created = await createHeygenPrivateVideoResource(platform, videoId, {
+    name: resource.name,
+    image_url: resource.data?.image_url,
+    visibility: nextVisibility,
+  });
+
+  // Sync the main-tenant mirror.
+  if (currentVisibility === "public" && nextVisibility !== "public") {
+    await unpublishVideoFromMainTenant(videoId);
+  }
+  if (nextVisibility === "public" && currentVisibility !== "public") {
+    if (!publishContext) {
+      throw new Error(
+        "updateVideoVisibility: publishContext required to make a video public",
+      );
+    }
+    await publishVideoToMainTenant({
+      videoId,
+      title: resource.name || resource.data?.title || `Video ${videoId}`,
+      videoUrl: publishContext.videoUrl,
+      imageUrl: publishContext.imageUrl,
+      duration: publishContext.duration,
+      createdAt: publishContext.createdAt,
+      sourcePlatform: platform,
+    });
+  }
+
+  return created;
 }
 
 export interface DeleteCatalogResourceOptions {

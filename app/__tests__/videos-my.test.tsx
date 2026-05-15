@@ -10,6 +10,7 @@ vi.mock("@/lib/heygen/rest", () => ({
 vi.mock("@/lib/iblai/catalog", () => ({
   listHeygenPrivateVideoResources: (...a: unknown[]) =>
     listHeygenPrivateVideoResourcesMock(...a),
+  getCurrentUsername: () => "alice",
 }));
 vi.mock("@/lib/iblai/tenant", () => ({
   resolveAppTenant: () => "acme",

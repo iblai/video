@@ -22,6 +22,9 @@ vi.mock("@/components/iblai/notification-bell", () => ({
     <button data-testid="bell" onClick={onViewAll} />
   ),
 }));
+vi.mock("@/components/iblai/credit-balance", () => ({
+  IblaiCreditBalance: () => <div data-testid="credit-balance" />,
+}));
 
 import { AppHeader } from "@/components/app-header";
 

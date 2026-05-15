@@ -15,7 +15,10 @@ vi.mock("@/lib/iblai/tenant", () => ({
   resolveAppTenant: () => mockedTenant,
 }));
 vi.mock("@/lib/iblai/config", () => ({
-  default: { authUrl: () => "https://auth.test" },
+  default: {
+    authUrl: () => "https://auth.test",
+    mainTenantKey: () => "main",
+  },
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: replaceMock, back: backMock, push: vi.fn() }),

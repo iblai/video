@@ -4,7 +4,10 @@ import { render, screen } from "@testing-library/react";
 let mockedTenant = "acme";
 
 vi.mock("@/lib/iblai/config", () => ({
-  default: { authUrl: () => "https://auth.test" },
+  default: {
+    authUrl: () => "https://auth.test",
+    mainTenantKey: () => "main",
+  },
 }));
 vi.mock("@/lib/iblai/tenant", () => ({
   resolveAppTenant: () => mockedTenant,
