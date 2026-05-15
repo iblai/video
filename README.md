@@ -47,6 +47,11 @@ videoAI is an end-to-end video generation workspace. Pick or create an avatar, c
 | **My Videos** | Per-user gallery of generated videos with live status polling and player modal |
 
 
+## Audience
+
+videoAI is for platform admins who've added a HeyGen API key to their ibl.ai settings. Non-admins land on a "Platform admin required" screen, and tenants without a `heygen` integration credential see a setup gate until one is registered.
+
+
 ## Quick Start
 
 ### Prerequisites
