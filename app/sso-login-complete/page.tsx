@@ -26,7 +26,7 @@ export default function SsoLoginCompletePage() {
           EDX_TOKEN_KEY: "edx_jwt_token",
         }}
         redirectPathKey="redirect-to"
-        defaultRedirectPath="/ai-avatar/generate"
+        defaultRedirectPath="/"
       />
     </Suspense>
   );

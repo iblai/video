@@ -12,6 +12,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useSidebar } from "@/components/ui/sidebar"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import Image from "next/image"
+import { useIsAdmin } from "@/hooks/use-is-admin"
+import { resolveAppTenant } from "@/lib/iblai/tenant"
+import { PUBLIC_VIDEO_TENANT } from "@/lib/iblai/catalog"
+import { UpdateSubscriptionModal } from "@/components/iblai/update-subscription-modal"
 
 interface SidebarChild {
   id: string
@@ -64,6 +68,41 @@ export function AppSidebar() {
   const { state, toggleSidebar, isMobile, openMobile, setOpenMobile } = useSidebar()
 
   const isCollapsed = state === "collapsed"
+
+  // Student (non platform-admin) on the literal "main" tenant: clicking
+  // any non-community tab must NOT navigate. Cancel the navigation and
+  // pop the upgrade modal instead — the page stays exactly where it is.
+  const isAdmin = useIsAdmin()
+  const [adminResolved, setAdminResolved] = useState(false)
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setAdminResolved(true), 0)
+    return () => window.clearTimeout(id)
+  }, [])
+
+  const studentInMain =
+    adminResolved && !isAdmin && resolveAppTenant() === PUBLIC_VIDEO_TENANT
+
+  const isCommunityHref = (href: string) =>
+    href === "/community" || href.startsWith("/community/")
+
+  // Returns true when the click was intercepted (navigation cancelled).
+  const handleNavClick = (href: string, e: React.MouseEvent) => {
+    if (studentInMain && !isCommunityHref(href)) {
+      e.preventDefault()
+      setUpgradeOpen(true)
+      return true
+    }
+    return false
+  }
+
+  const upgradeModal = (
+    <UpdateSubscriptionModal
+      open={upgradeOpen}
+      onClose={() => setUpgradeOpen(false)}
+    />
+  )
 
   const visibleSidebarItems = sidebarItems
 
@@ -137,7 +176,11 @@ export function AppSidebar() {
               {item.label}
             </div>
             {item.children.map((child: any) => (
-              <Link key={child.id} href={child.href || "#"}>
+              <Link
+                key={child.id}
+                href={child.href || "#"}
+                onClick={(e) => handleNavClick(child.href || "#", e)}
+              >
                 <div
                   className={cn(
                     "px-3 py-2 text-sm text-videoai-text hover:bg-videoai-accent hover:text-videoai-primary cursor-pointer",
@@ -173,7 +216,13 @@ export function AppSidebar() {
             {visibleSidebarItems.map((item) => (
               <div key={item.id}>
                 {item.href ? (
-                  <Link href={item.href} onClick={() => isMobileSheet && setOpenMobile(false)}>
+                  <Link
+                    href={item.href}
+                    onClick={(e) => {
+                      if (handleNavClick(item.href as string, e)) return
+                      if (isMobileSheet) setOpenMobile(false)
+                    }}
+                  >
                     <Button
                       variant="ghost"
                       className={cn(
@@ -212,7 +261,10 @@ export function AppSidebar() {
                       <Link
                         key={child.id}
                         href={child.href || "#"}
-                        onClick={() => isMobileSheet && setOpenMobile(false)}
+                        onClick={(e) => {
+                          if (handleNavClick(child.href || "#", e)) return
+                          if (isMobileSheet) setOpenMobile(false)
+                        }}
                       >
                         <Button
                           variant="ghost"
@@ -237,15 +289,19 @@ export function AppSidebar() {
 
   if (isMobile) {
     return (
-      <Sheet open={openMobile} onOpenChange={setOpenMobile}>
-        <SheetContent side="left" className="w-72 p-0 bg-white">
-          <SidebarContent isMobileSheet={true} />
-        </SheetContent>
-      </Sheet>
+      <>
+        <Sheet open={openMobile} onOpenChange={setOpenMobile}>
+          <SheetContent side="left" className="w-72 p-0 bg-white">
+            <SidebarContent isMobileSheet={true} />
+          </SheetContent>
+        </Sheet>
+        {upgradeModal}
+      </>
     )
   }
 
   return (
+    <>
     <div
       className={cn(
         "bg-white border-r border-videoai-stroke flex flex-col relative transition-all duration-300",
@@ -282,7 +338,10 @@ export function AppSidebar() {
             <div key={item.id}>
               <HoverMenu item={item}>
                 {item.href ? (
-                  <Link href={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={(e) => handleNavClick(item.href as string, e)}
+                  >
                     <Button
                       variant="ghost"
                       className={cn(
@@ -325,7 +384,11 @@ export function AppSidebar() {
                 <div className="ml-6 mt-1 space-y-1 relative">
                   <div className="absolute left-0 top-0 bottom-0 w-px bg-videoai-stroke mr-2"></div>
                   {item.children.map((child) => (
-                    <Link key={child.id} href={child.href || "#"}>
+                    <Link
+                      key={child.id}
+                      href={child.href || "#"}
+                      onClick={(e) => handleNavClick(child.href || "#", e)}
+                    >
                       <Button
                         variant="ghost"
                         className={cn(
@@ -344,5 +407,7 @@ export function AppSidebar() {
         </div>
       </nav>
     </div>
+    {upgradeModal}
+    </>
   )
 }

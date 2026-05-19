@@ -10,6 +10,7 @@ An AI video studio for generating avatar videos, cloning voices, and authoring s
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-CC785C?logoColor=white)](https://claude.ai)
+[![Desktop & Mobile](https://img.shields.io/badge/Desktop_%26_Mobile-supported-blue)](https://github.com/iblai/vibe/blob/main/skills/iblai-ops-build/SKILL.md)
 
 </div>
 
@@ -119,6 +120,103 @@ Open [http://localhost:3000](http://localhost:3000). You'll be redirected to `ht
 ```bash
 pnpm build
 pnpm start
+```
+
+### Native builds (iOS, Android, macOS, Linux, Surface)
+
+Wrap videoAI in a native shell with [Tauri v2](https://tauri.app) using the
+`iblai builds` family of commands (full guide:
+[`/iblai-ops-build`](https://github.com/iblai/vibe/blob/main/skills/iblai-ops-build/SKILL.md)).
+All platforms share a single static `next build` export — the CLI runs the
+frontend build automatically before starting the Tauri dev server, and the
+WebView loads the same `out/` bundle. **Stop `pnpm dev` (and any other
+process on port 3000) before running a dev build.**
+
+#### One-time setup
+
+```bash
+iblai add builds                    # Add Tauri support to the project
+pnpm install
+iblai builds iconography logo.png   # Generate per-platform app icons
+```
+
+You'll also need [Rust via rustup](https://rustup.rs).
+
+For mobile SSO, set `TAURI_CUSTOM_SCHEME=videoai` in `iblai.env` so the auth
+SPA redirects via a custom URI scheme (mobile WebViews can't return from
+an `https://` redirect to a native app).
+
+#### iOS
+
+
+Requires macOS + Xcode + Xcode Command Line Tools.
+
+```bash
+rustup target add aarch64-apple-ios aarch64-apple-ios-sim
+iblai builds ios init                          # one-time
+iblai builds device                            # list simulators
+iblai builds ios dev "iPhone 16 Pro Max"       # run on simulator
+iblai builds ios dev --device                  # run on a connected iPhone
+iblai builds ios build                         # produce .ipa
+iblai builds ci-workflow --ios                 # generate App Store CI
+```
+
+#### Android
+
+
+Requires Android Studio with the Android SDK + NDK installed.
+
+```bash
+rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+iblai builds android init                      # one-time
+iblai builds device                            # list emulators
+iblai builds android dev "Pixel_9"             # run on emulator
+iblai builds android dev --device              # run on a connected device
+iblai builds android build                     # produce APK
+iblai builds ci-workflow --android             # generate Play Store CI
+```
+
+#### macOS desktop
+
+
+Requires `xcode-select --install`.
+
+```bash
+iblai builds dev                               # run as a desktop app
+iblai builds build                             # produce .dmg / .app
+iblai builds ci-workflow --mac                 # generate macOS CI
+```
+
+#### Linux desktop
+
+System deps (Debian/Ubuntu):
+
+```bash
+sudo apt install libwebkit2gtk-4.1-dev build-essential libssl-dev \
+  libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+```
+
+```bash
+iblai builds dev                               # dev shell
+iblai builds build                             # produce .deb / .AppImage
+iblai builds ci-workflow --linux               # generate Linux CI
+```
+
+#### Surface (Windows tablet / desktop)
+
+Requires Visual Studio Build Tools (C++ workload) and WebView2 (bundled
+with Windows 11).
+
+```bash
+iblai builds dev                               # dev shell
+iblai builds build                             # produce .msi / .exe
+iblai builds ci-workflow --windows             # generate Windows CI
+```
+
+#### Generate every CI workflow at once
+
+```bash
+iblai builds ci-workflow --all
 ```
 
 ### Tests
