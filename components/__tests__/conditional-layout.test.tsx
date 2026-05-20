@@ -11,16 +11,6 @@ vi.mock("@/providers/iblai-providers", () => ({
     <div data-testid="iblai-providers">{children}</div>
   ),
 }));
-vi.mock("@/components/admin-guard", () => ({
-  AdminGuard: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="admin-guard">{children}</div>
-  ),
-}));
-vi.mock("@/components/heygen-guard", () => ({
-  HeygenGuard: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="heygen-guard">{children}</div>
-  ),
-}));
 vi.mock("@/components/app-sidebar", () => ({
   AppSidebar: () => <div data-testid="sidebar" />,
 }));
@@ -33,6 +23,11 @@ vi.mock("@/components/footer", () => ({
 vi.mock("@/components/ui/sidebar", () => ({
   SidebarProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="sidebar-provider">{children}</div>
+  ),
+}));
+vi.mock("@/components/iblai/update-subscription-modal", () => ({
+  UpdateSubscriptionModal: () => (
+    <div data-testid="upgrade-modal" />
   ),
 }));
 
@@ -70,7 +65,7 @@ describe("ConditionalLayout", () => {
     expect(screen.queryByTestId("iblai-providers")).not.toBeInTheDocument();
   });
 
-  it("wraps authed routes in providers + admin guard + heygen guard + chrome", () => {
+  it("wraps authed non-community routes in providers + chrome + upgrade modal (no admin/heygen gate pages)", () => {
     mockedPathname = "/ai-avatar/generate";
     render(
       <ConditionalLayout>
@@ -78,10 +73,25 @@ describe("ConditionalLayout", () => {
       </ConditionalLayout>,
     );
     expect(screen.getByTestId("iblai-providers")).toBeInTheDocument();
-    expect(screen.getByTestId("admin-guard")).toBeInTheDocument();
-    expect(screen.getByTestId("heygen-guard")).toBeInTheDocument();
     expect(screen.getByTestId("sidebar")).toBeInTheDocument();
     expect(screen.getByTestId("header")).toBeInTheDocument();
     expect(screen.getByTestId("footer")).toBeInTheDocument();
+    // Modal mounts on non-community routes (self-gates internally).
+    expect(screen.getByTestId("upgrade-modal")).toBeInTheDocument();
+    // Removed gate pages must not render.
+    expect(screen.queryByTestId("admin-guard")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("heygen-guard")).not.toBeInTheDocument();
+  });
+
+  it("does not mount the upgrade modal on the community route", () => {
+    mockedPathname = "/community";
+    render(
+      <ConditionalLayout>
+        <span>child</span>
+      </ConditionalLayout>,
+    );
+    expect(screen.getByTestId("iblai-providers")).toBeInTheDocument();
+    expect(screen.getByTestId("sidebar")).toBeInTheDocument();
+    expect(screen.queryByTestId("upgrade-modal")).not.toBeInTheDocument();
   });
 });

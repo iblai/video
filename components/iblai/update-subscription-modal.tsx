@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { UpgradePackageModal } from "@iblai/iblai-js/web-containers"
 
 import { useIsAdmin } from "@/hooks/use-is-admin"
+import { useHasHeygenCredential } from "@/hooks/use-has-heygen-credential"
 import { resolveAppTenant } from "@/lib/iblai/tenant"
 import { PUBLIC_VIDEO_TENANT } from "@/lib/iblai/catalog"
 
@@ -25,18 +26,20 @@ function currentUserEmail(): string {
  * Mentorai-style "update subscription" prompt, backed by the SDK
  * `UpgradePackageModal` (no Redux / 402 / flow machinery).
  *
- * Shown only to students (non platform-admin users) on the main tenant.
- * Platform admins and non-main tenants always render nothing.
+ * Replaces the `AdminGuard` 403 page and the `HeygenGuard` 424 page.
+ * Shown whenever the current user lacks what a non-community route
+ * needs: platform-admin rights OR a HeyGen credential on the tenant.
+ * Platform admins on a tenant with a HeyGen key render nothing.
  *
  * Two modes:
- *  - **Controlled**: pass `open` + `onClose` (the sidebar opens it when a
- *    student clicks a gated tab; navigation is cancelled, page unchanged).
- *  - **Uncontrolled**: omit props — it self-opens once on mount (fallback
- *    for a direct hit / refresh on a non-community route).
+ *  - **Controlled**: pass `open` + `onClose` (the sidebar opens it when
+ *    a gated tab is clicked; the navigation is cancelled, page stays).
+ *  - **Uncontrolled**: omit props — it self-opens once on mount
+ *    (conditional-layout fallback for a direct hit / refresh on a
+ *    non-community route).
  *
- * Renders nothing until admin/tenant state resolves (mirrors
- * `AdminGuard`'s effect-tick pattern so it doesn't flash for admins
- * before `useIsAdmin` settles).
+ * Renders nothing while admin/HeyGen state is still resolving so it
+ * doesn't flash for fully-credentialed users.
  */
 interface UpdateSubscriptionModalProps {
   open?: boolean
@@ -48,6 +51,7 @@ export function UpdateSubscriptionModal({
   onClose,
 }: UpdateSubscriptionModalProps = {}) {
   const isAdmin = useIsAdmin()
+  const heygen = useHasHeygenCredential()
   const [resolved, setResolved] = useState(false)
   const [openState, setOpenState] = useState(true)
 
@@ -56,13 +60,15 @@ export function UpdateSubscriptionModal({
     return () => window.clearTimeout(id)
   }, [])
 
-  if (!resolved) return null
+  // Wait for both checks to settle so we never flash the modal at
+  // someone who actually has full access.
+  if (!resolved || heygen === "checking") return null
 
-  // "in main" = the literal "main" tenant (PUBLIC_VIDEO_TENANT).
   const tenant = resolveAppTenant()
   const email = currentUserEmail()
+  const needsAccess = !isAdmin || heygen === "missing"
 
-  if (isAdmin || tenant !== PUBLIC_VIDEO_TENANT || !email) return null
+  if (!needsAccess || !email) return null
 
   const controlled = openProp !== undefined
   const open = controlled ? openProp : openState

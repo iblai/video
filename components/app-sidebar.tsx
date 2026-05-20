@@ -13,8 +13,7 @@ import { useSidebar } from "@/components/ui/sidebar"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import Image from "next/image"
 import { useIsAdmin } from "@/hooks/use-is-admin"
-import { resolveAppTenant } from "@/lib/iblai/tenant"
-import { PUBLIC_VIDEO_TENANT } from "@/lib/iblai/catalog"
+import { useHasHeygenCredential } from "@/hooks/use-has-heygen-credential"
 import { UpdateSubscriptionModal } from "@/components/iblai/update-subscription-modal"
 
 interface SidebarChild {
@@ -69,10 +68,12 @@ export function AppSidebar() {
 
   const isCollapsed = state === "collapsed"
 
-  // Student (non platform-admin) on the literal "main" tenant: clicking
-  // any non-community tab must NOT navigate. Cancel the navigation and
-  // pop the upgrade modal instead — the page stays exactly where it is.
+  // Anyone lacking platform-admin rights OR a HeyGen credential cannot
+  // use the non-community tabs. Clicking one must NOT navigate: cancel
+  // the navigation, pop the upgrade modal, and leave the page in place.
+  // Community = unrestricted, navigation always passes through.
   const isAdmin = useIsAdmin()
+  const heygen = useHasHeygenCredential()
   const [adminResolved, setAdminResolved] = useState(false)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
 
@@ -81,15 +82,17 @@ export function AppSidebar() {
     return () => window.clearTimeout(id)
   }, [])
 
-  const studentInMain =
-    adminResolved && !isAdmin && resolveAppTenant() === PUBLIC_VIDEO_TENANT
+  const needsAccess =
+    adminResolved &&
+    heygen !== "checking" &&
+    (!isAdmin || heygen === "missing")
 
   const isCommunityHref = (href: string) =>
     href === "/community" || href.startsWith("/community/")
 
   // Returns true when the click was intercepted (navigation cancelled).
   const handleNavClick = (href: string, e: React.MouseEvent) => {
-    if (studentInMain && !isCommunityHref(href)) {
+    if (needsAccess && !isCommunityHref(href)) {
       e.preventDefault()
       setUpgradeOpen(true)
       return true
