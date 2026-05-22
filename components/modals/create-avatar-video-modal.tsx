@@ -1,12 +1,13 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Sparkles, Play, Pause, Maximize, Minimize, RectangleHorizontal, RectangleVertical } from "lucide-react"
-import Image from "next/image"
+import Image from "@/components/iblai/base-image"
 import { ChooseVoiceModal, type ChosenVoice } from "./choose-voice-modal"
 import { RecordAudioModal } from "./record-audio-modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -41,6 +42,7 @@ const models = [
 ]
 
 export function CreateAvatarVideoModal({ open, onOpenChange, avatar }: CreateAvatarVideoModalProps) {
+  const router = useRouter()
   const [script, setScript] = useState("")
   const [selectedVoice, setSelectedVoice] = useState<{ id: string; name: string } | null>(null)
   const [selectedModel, setSelectedModel] = useState<string>("heygen")
@@ -168,7 +170,7 @@ export function CreateAvatarVideoModal({ open, onOpenChange, avatar }: CreateAva
         }
 
         onOpenChange(false)
-        window.location.href = "/videos/my"
+        router.push("/videos/my")
         return
       }
 
@@ -221,7 +223,7 @@ export function CreateAvatarVideoModal({ open, onOpenChange, avatar }: CreateAva
       }, 800)
 
       onOpenChange(false)
-      window.location.href = "/videos/my"
+      router.push("/videos/my")
     } catch (err) {
       console.error("Video generation failed:", err)
       setGenerateError((err as Error)?.message ?? "Video generation failed")

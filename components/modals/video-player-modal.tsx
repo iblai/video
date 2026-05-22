@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Download, Share2, X } from "lucide-react"
 import { ShareModal } from "./share-modal"
+import { withBasePath } from "@/lib/iblai/base-path"
 
 interface VideoClip {
   id: string
@@ -83,7 +84,7 @@ export default function VideoPlayerModal({ isOpen, onClose, video }: VideoPlayer
       <ShareModal
         isOpen={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
-        shareUrl={`${window.location.origin}/video/watch/${video.id}`}
+        shareUrl={`${window.location.origin}${withBasePath(`/video/watch/${video.id}`)}`}
       />
     </>
   )

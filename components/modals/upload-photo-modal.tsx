@@ -6,7 +6,7 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { X, Upload, Check } from "lucide-react"
-import Image from "next/image"
+import Image from "@/components/iblai/base-image"
 
 interface UploadPhotoModalProps {
   open: boolean

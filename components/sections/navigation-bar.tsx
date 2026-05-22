@@ -1,6 +1,6 @@
 "use client"
 
-import Image from "next/image"
+import Image from "@/components/iblai/base-image"
 import { Button } from "@/components/ui/button"
 import { Play, Menu } from "lucide-react"
 import { useState } from "react"

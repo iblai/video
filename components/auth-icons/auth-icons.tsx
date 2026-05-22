@@ -32,8 +32,13 @@ export function AppleIcon() {
   )
 }
 
+import { withBasePath } from "@/lib/iblai/base-path"
+
 export function PasswordIcon() {
-  return <img src="/password_logo.png" alt="Password" className="w-5 h-5 mr-2" />
+  // Plain `<img>` is not auto-prefixed by Next's `basePath` config --
+  // wrap with `withBasePath` so the asset resolves under a sub-path
+  // deploy (e.g. `/videoai/password_logo.png`).
+  return <img src={withBasePath("/password_logo.png")} alt="Password" className="w-5 h-5 mr-2" />
 }
 
 export function EyeIcon() {

@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Upload, Loader2, Maximize, Minimize, RotateCw, RotateCcw, ChevronDown } from "lucide-react"
-import Image from "next/image"
+import Image from "@/components/iblai/base-image"
 import { useRouter } from "next/navigation"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
@@ -18,6 +18,7 @@ import {
   ensureUnsignedImageUrl,
 } from "@/lib/heygen/rest"
 import { createHeygenPrivateAvatarResource } from "@/lib/iblai/catalog"
+import { withBasePath } from "@/lib/iblai/base-path"
 import { resolveAppTenant } from "@/lib/iblai/tenant"
 
 const characterModels = [
@@ -247,7 +248,7 @@ Best regards,
             <div className="flex items-center gap-3 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50">
               <div className="w-10 h-10 flex-shrink-0">
                 <Image
-                  src="/images/ibl-logo.png"
+                  src={withBasePath("/images/ibl-logo.png")}
                   alt="ibl.ai"
                   width={40}
                   height={40}
@@ -546,7 +547,7 @@ Best regards,
                 <div className="flex-1 max-h-70 sm:max-h-80 pb-4 sm:pb-6">
                   <div className="h-full rounded-xl overflow-hidden shadow-lg">
                     <Image
-                      src="/images/characters/interactive-marcus.png"
+                      src={withBasePath("/images/characters/interactive-marcus.png")}
                       alt="Interactive Marcus Aurelius AI Avatar"
                       width={400}
                       height={300}

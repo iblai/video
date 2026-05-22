@@ -4,10 +4,12 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { hasNonExpiredAuthToken, redirectToAuthSpa } from "@/lib/iblai/auth-utils"
 import { useIsAdmin } from "@/hooks/use-is-admin"
+import { useHasHeygenCredential } from "@/hooks/use-has-heygen-credential"
 
 export default function HomePage() {
   const router = useRouter()
   const isAdmin = useIsAdmin()
+  const heygen = useHasHeygenCredential()
   const [resolved, setResolved] = useState(false)
 
   // useIsAdmin is effect-driven (false on first paint, settles a tick
@@ -24,12 +26,18 @@ export default function HomePage() {
       return
     }
     if (!resolved) return
-    // Non-admin users land on the public community feed (the only
-    // surface that doesn't need admin + HeyGen). Admins go to the
-    // avatar generate page; if their tenant is missing a HeyGen key,
-    // the upgrade-subscription modal pops on that page.
-    router.replace(isAdmin ? "/ai-avatar/generate" : "/community")
-  }, [router, resolved, isAdmin])
+    // Wait for the heygen credential probe to settle before routing an
+    // admin -- otherwise admins with a valid key flash through
+    // /community before landing on /ai-avatar/generate.
+    if (isAdmin && heygen === "checking") return
+    // Only admins WITH a HeyGen key land on the avatar generate page.
+    // Everyone else (students in any tenant, admins without a HeyGen
+    // key) lands on the public community feed -- the one surface that
+    // doesn't need admin + HeyGen.
+    const target =
+      isAdmin && heygen === "ok" ? "/ai-avatar/generate" : "/community"
+    router.replace(target)
+  }, [router, resolved, isAdmin, heygen])
 
   return (
     <div className="flex items-center justify-center min-h-screen">

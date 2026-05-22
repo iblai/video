@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Search, Play, Loader2 } from "lucide-react"
-import Image from "next/image"
+import Image from "@/components/iblai/base-image"
 import VideoPlayerModal from "@/components/modals/video-player-modal"
 import {
   listHeygenPrivateVideoResources,

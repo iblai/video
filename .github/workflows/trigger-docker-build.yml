@@ -1,0 +1,41 @@
+name: Docker Build
+
+on:
+  push:
+    branches:
+      - main
+
+run-name: 'Build videoai ${{ github.sha }}'
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: 'Prepare'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from package.json
+        id: version
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          VERSION="${PKG_VERSION}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+  build:
+    # Only build on the release commit produced by release-it.
+    if: "startsWith(github.event.head_commit.message, 'chore(release):')"
+    needs: prepare
+    uses: iblai/iblai-web-ops/.github/workflows/reusable-spa-docker-build.yml@main
+    with:
+      app_name: videoai
+      source_repo: ${{ github.repository }}
+      source_ref: ${{ github.ref }}
+      version: ${{ needs.prepare.outputs.version }}
+      next_image_patterns: ${{ vars.NEXT_IMAGE_PATTERNS }}
+    secrets: inherit

@@ -11,8 +11,13 @@
  * what the upstream produced.
  */
 import { resolveAppTenant } from "@/lib/iblai/tenant"
+import { withBasePath } from "@/lib/iblai/base-path"
 
-const API_BASE = "/api/heygen"
+// API routes share the app's `basePath` (Next mounts everything --
+// pages AND `/api/*` -- under the configured prefix). Raw fetches use
+// this rooted path; Next's helpers (Link, router) prefix
+// automatically, but `fetch("/api/...")` does not.
+const API_BASE = withBasePath("/api/heygen")
 
 function getDmToken(): string {
   if (typeof window === "undefined") return ""

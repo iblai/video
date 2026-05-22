@@ -8,6 +8,19 @@
 
 import config from "./config";
 import { resolveAppTenant } from "./tenant";
+import { getBasePath } from "./base-path";
+
+/**
+ * `window.location.origin` + the configured sub-path prefix. The Auth
+ * SPA's `redirect-to` callback must point at the app's actual mount
+ * point -- with sub-path deployment that is `<origin><basePath>`, not
+ * the bare origin (otherwise post-login lands at the wrong path and
+ * 404s when the host has no root app).
+ */
+function originWithBasePath(): string {
+  if (typeof window === "undefined") return "";
+  return `${window.location.origin}${getBasePath()}`;
+}
 
 /**
  * Navigate to a URL.
@@ -28,7 +41,10 @@ export function redirectToAuthSpa(
   logout?: boolean,
   saveRedirect?: boolean,
 ) {
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const origin = originWithBasePath();
+  // `window.location.pathname` already includes the basePath when the
+  // app is mounted under one -- keep it intact so the saved
+  // redirect-to round-trips back to the same page after login.
   const path = redirectTo ?? (typeof window !== "undefined" ? window.location.pathname : "/");
 
   if (saveRedirect) {
@@ -58,7 +74,7 @@ export function hasNonExpiredAuthToken(): boolean {
 /** Handle logout: clear state and redirect to the Auth SPA logout page. */
 export function handleLogout() {
   const tenant = resolveAppTenant();
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const origin = originWithBasePath();
   localStorage.clear();
   navigateTo(`${config.authUrl()}/logout?redirect-to=${origin}&tenant=${tenant}`);
 }
@@ -75,7 +91,7 @@ export async function handleTenantSwitch(tenant: string) {
   if (!tenant || tenant === localStorage.getItem("tenant")) return;
 
   const jwtToken = localStorage.getItem("edx_jwt_token");
-  const origin = window.location.origin;
+  const origin = originWithBasePath();
 
   localStorage.clear();
   localStorage.setItem("tenant", tenant);

@@ -1,6 +1,6 @@
 "use client"
 
-import Image from "next/image"
+import Image from "@/components/iblai/base-image"
 import { Button } from "@/components/ui/button"
 import { Check, ArrowRight } from "lucide-react"
 

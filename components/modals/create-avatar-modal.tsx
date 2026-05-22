@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { X } from "lucide-react"
-import Image from "next/image"
+import Image from "@/components/iblai/base-image"
 
 interface CreateAvatarModalProps {
   open: boolean

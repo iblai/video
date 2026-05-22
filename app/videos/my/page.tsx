@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus } from "lucide-react";
-import Image from "next/image";
+import Image from "@/components/iblai/base-image";
 import VideoPlayerModal from "@/components/modals/video-player-modal";
 import { Loader } from "@iblai/iblai-js/web-containers";
 import {
@@ -89,6 +90,7 @@ function toVideoClip(
 }
 
 export default function MyVideoClipsPage() {
+    const router = useRouter();
     const [selectedVideo, setSelectedVideo] = useState<VideoClip | null>(null);
     const [videoPlayerOpen, setVideoPlayerOpen] = useState(false);
     const [videoClips, setVideoClips] = useState<VideoClip[]>([]);
@@ -211,7 +213,7 @@ export default function MyVideoClipsPage() {
     }, []);
 
     const handleCreateNewVideo = () => {
-        window.location.href = "/videos/generate";
+        router.push("/videos/generate");
     };
 
     const handleVideoClick = (video: VideoClip) => {

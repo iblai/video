@@ -3,7 +3,8 @@
 import type React from "react";
 import { Suspense } from "react";
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { withBasePath } from "@/lib/iblai/base-path";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Upload, Link, Sparkles, Trash2, RotateCcw } from "lucide-react";
-import Image from "next/image";
+import Image from "@/components/iblai/base-image";
 import {
     uploadHeygenAsset,
     createHeygenVideoClip,
@@ -66,6 +67,7 @@ const resolutions = [
 
 function VideoGeneratorContent() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const [selectedModel, setSelectedModel] = useState("heygen");
     const [script, setScript] = useState("");
     const [motionPrompt, setMotionPrompt] = useState("");
@@ -398,7 +400,7 @@ function VideoGeneratorContent() {
                     console.warn("[video-clip] publish-to-main failed:", err);
                 }
             }
-            window.location.href = "/videos/my";
+            router.push("/videos/my");
         } catch (err) {
             console.error("[video-clip] generate failed:", err);
             setGenerateError(
@@ -647,7 +649,7 @@ function VideoGeneratorContent() {
                             <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-[#0376C1] p-2 sm:h-14 sm:w-14">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
-                                    src={currentModel.icon}
+                                    src={withBasePath(currentModel.icon)}
                                     alt={currentModel.name}
                                     className="h-full w-full object-contain"
                                 />

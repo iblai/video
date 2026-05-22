@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { ChevronRight, FileText } from "lucide-react"
-import Image from "next/image"
+import Image from "@/components/iblai/base-image"
 
 const modelChips = [
   { id: "veo3", label: "Veo 3", icon: "/images/models/veo3.png", active: true },

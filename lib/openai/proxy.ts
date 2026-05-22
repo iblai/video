@@ -7,8 +7,12 @@
  * DM token so the server can look up the right credential.
  */
 import { resolveAppTenant } from "@/lib/iblai/tenant";
+import { withBasePath } from "@/lib/iblai/base-path";
 
-const API_BASE = "/api/openai";
+// Same-origin proxy. Next mounts `/api/*` under the configured
+// `basePath` too, so prefix at the call site -- raw `fetch("/api/...")`
+// is not auto-prefixed the way Link / router.push are.
+const API_BASE = withBasePath("/api/openai");
 
 function getDmToken(): string {
   if (typeof window === "undefined") return "";
