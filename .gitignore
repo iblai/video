@@ -29,7 +29,7 @@ next-env.d.ts
 
 
 # lock files
-pnpm-lock.yaml
+# pnpm-lock.yaml
 
 # test artifacts
 /coverage
