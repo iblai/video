@@ -1,6 +1,6 @@
 {
   "name": "videoai",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "private": true,
   "scripts": {
     "prebuild": "next telemetry disable",
