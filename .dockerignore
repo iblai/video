@@ -1,0 +1,35 @@
+# Build context excludes -- keep `COPY . .` in the builder stage from
+# clobbering the cached `node_modules` and `.next` produced inside the
+# image (host versions are wrong arch / different pnpm state and trip
+# `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY` on the deps-status check).
+node_modules
+.next
+.next/**
+.git
+.github
+.vscode
+.cursor
+.idea
+
+# Local config that shouldn't bake into images
+.env.local
+.env.development
+.env.development.local
+.env.test.local
+.env.production.local
+*.log
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+
+# Test output
+test-results
+playwright-report
+coverage
+
+# Docs/repo metadata not needed at build time
+README.md
+CHANGELOG.md
+docs
+e2e
