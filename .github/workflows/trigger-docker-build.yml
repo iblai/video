@@ -10,32 +10,78 @@ run-name: 'Build videoai ${{ github.sha }}'
 permissions:
   contents: read
 
+env:
+  ECR_REGISTRY: 765174860755.dkr.ecr.us-east-1.amazonaws.com
+  IMAGE_NAME: iblai-videoai-spa-pro
+
 jobs:
-  prepare:
-    name: 'Prepare'
+  build:
+    name: 'Build & push videoai'
+    if: "startsWith(github.event.head_commit.message, 'chore(release):')"
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Extract version from package.json
         id: version
         run: |
-          PKG_VERSION=$(node -p "require('./package.json').version")
-          VERSION="${PKG_VERSION}"
+          VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
-  build:
-    # Only build on the release commit produced by release-it.
-    if: "startsWith(github.event.head_commit.message, 'chore(release):')"
-    needs: prepare
-    uses: iblai/iblai-web-ops/.github/workflows/reusable-spa-docker-build.yml@main
-    with:
-      app_name: videoai
-      source_repo: ${{ github.repository }}
-      source_ref: ${{ github.ref }}
-      version: ${{ needs.prepare.outputs.version }}
-      next_image_patterns: ${{ vars.NEXT_IMAGE_PATTERNS }}
-    secrets: inherit
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          FULL_URI="$REGISTRY/$IMAGE_NAME:$VERSION"
+
+          echo "=== Building Docker Image ==="
+          echo "Image: $FULL_URI"
+
+          docker build \
+            -f Dockerfile \
+            -t "$FULL_URI" \
+            --no-cache \
+            .
+
+      - name: Push Docker image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          FULL_URI="$REGISTRY/$IMAGE_NAME:$VERSION"
+
+          docker push "$FULL_URI"
+
+          docker tag "$FULL_URI" "$REGISTRY/$IMAGE_NAME:latest"
+          docker push "$REGISTRY/$IMAGE_NAME:latest"
+
+          echo "Pushed: $FULL_URI"
+          echo "Pushed: $REGISTRY/$IMAGE_NAME:latest"
+
+      - name: Build summary
+        if: always()
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          echo "## Docker Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| | |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **App** | videoai |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Image** | \`$REGISTRY/$IMAGE_NAME:${{ steps.version.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Version** | ${{ steps.version.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
