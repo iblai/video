@@ -18,7 +18,7 @@ jobs:
   build:
     name: 'Build & push videoai'
     if: "startsWith(github.event.head_commit.message, 'chore(release):')"
-    runs-on: oci-runner-1
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
