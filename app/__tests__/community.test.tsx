@@ -2,11 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 
 const listHeygenPrivateVideoResourcesMock = vi.fn();
+const probeImageMock = vi.fn<(url: string) => Promise<boolean>>();
 
 vi.mock("@/lib/iblai/catalog", () => ({
   listHeygenPrivateVideoResources: (...a: unknown[]) =>
     listHeygenPrivateVideoResourcesMock(...a),
   PUBLIC_VIDEO_TENANT: "main",
+}));
+vi.mock("@/lib/iblai/probe-image", () => ({
+  probeImage: (url: string) => probeImageMock(url),
 }));
 vi.mock("next/image", () => ({
   __esModule: true,
@@ -46,6 +50,10 @@ function publicResource(id: string, title: string) {
 describe("CommunityPage", () => {
   beforeEach(() => {
     listHeygenPrivateVideoResourcesMock.mockReset();
+    probeImageMock.mockReset();
+    // Default: every thumbnail is reachable. Individual tests override
+    // this to simulate expired (403) URLs.
+    probeImageMock.mockResolvedValue(true);
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
   afterEach(() => {
@@ -144,5 +152,33 @@ describe("CommunityPage", () => {
     await waitFor(() =>
       expect(screen.getByText(/no public videos yet/i)).toBeInTheDocument(),
     );
+  });
+
+  it("hides videos whose thumbnail URL has expired (403/404)", async () => {
+    listHeygenPrivateVideoResourcesMock.mockResolvedValue([
+      publicResource("v1", "Reachable"),
+      publicResource("v2", "Expired"),
+    ]);
+    probeImageMock.mockImplementation(async (url: string) =>
+      !url.includes("v2.png"),
+    );
+    render(<CommunityPage />);
+    await waitFor(() =>
+      expect(screen.getByText("Reachable")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("Expired")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the empty state when every thumbnail is expired", async () => {
+    listHeygenPrivateVideoResourcesMock.mockResolvedValue([
+      publicResource("v1", "Gone"),
+      publicResource("v2", "Also gone"),
+    ]);
+    probeImageMock.mockResolvedValue(false);
+    render(<CommunityPage />);
+    await waitFor(() =>
+      expect(screen.getByText(/no public videos yet/i)).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("Gone")).not.toBeInTheDocument();
   });
 });

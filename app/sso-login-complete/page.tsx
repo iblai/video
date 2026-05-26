@@ -25,7 +25,7 @@ export default function SsoLoginCompletePage() {
           DM_TOKEN_EXPIRES: "dm_token_expires",
           EDX_TOKEN_KEY: "edx_jwt_token",
         }}
-        redirectPathKey="redirect-to"
+        redirectPathKey="redirectTo"
         defaultRedirectPath="/"
       />
     </Suspense>

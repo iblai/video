@@ -25,35 +25,69 @@ export function useIsAdmin(): boolean {
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
-    const compute = () => {
+
+    let cancelled = false;
+    let pollId: number | null = null;
+
+    // Returns true when `tenants` localStorage is populated (the SDK has
+    // hydrated the list); the admin flag is committed to state inside.
+    const compute = (): boolean => {
       try {
         const tenant = resolveAppTenant();
         if (!tenant) {
-          setIsAdmin(false);
-          return;
+          if (!cancelled) setIsAdmin(false);
+          return false;
         }
         const raw = localStorage.getItem("tenants");
         if (!raw) {
-          setIsAdmin(false);
-          return;
+          if (!cancelled) setIsAdmin(false);
+          return false;
         }
         const parsed = JSON.parse(raw) as TenantEntry[] | TenantEntry;
         const list = Array.isArray(parsed) ? parsed : [parsed];
+        if (list.length === 0) {
+          if (!cancelled) setIsAdmin(false);
+          return false;
+        }
         const match = list.find((t) => t?.key === tenant);
-        setIsAdmin(Boolean(match?.is_admin));
+        if (!cancelled) setIsAdmin(Boolean(match?.is_admin));
+        return true;
       } catch {
-        setIsAdmin(false);
+        if (!cancelled) setIsAdmin(false);
+        return false;
       }
     };
-    compute();
-    // Re-evaluate when the SDK or auth flow updates the tenants blob.
+
+    const startPolling = () => {
+      if (pollId !== null) return;
+      let attempts = 0;
+      pollId = window.setInterval(() => {
+        attempts += 1;
+        if (cancelled || compute() || attempts >= 40) {
+          if (pollId !== null) {
+            window.clearInterval(pollId);
+            pollId = null;
+          }
+        }
+      }, 50);
+    };
+
+    // First read attempt. If `tenants` isn't populated yet (typical
+    // post-mount and post-tenant-switch), poll until it lands. Same-tab
+    // writes don't fire `storage` events, so the listener below only
+    // covers cross-tab updates.
+    if (!compute()) startPolling();
+
     const onStorage = (e: StorageEvent) => {
-      if (e.key === "tenants" || e.key === "tenant") {
-        compute();
-      }
+      if (e.key === "tenants" || e.key === "tenant") compute();
     };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("storage", onStorage);
+      if (pollId !== null) window.clearInterval(pollId);
+    };
   }, []);
 
   return isAdmin;

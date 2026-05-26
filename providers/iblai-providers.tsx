@@ -31,6 +31,7 @@ import {
   hasNonExpiredAuthToken,
   handleLogout,
 } from "@/lib/iblai/auth-utils";
+import { StripeCallbackHandler } from "@/components/iblai/stripe-callback-handler";
 
 const storageService = LocalStorageService.getInstance();
 
@@ -105,6 +106,7 @@ export function IblaiProviders({ children }: { children: ReactNode }) {
 
   return (
     <ReduxProvider store={iblaiStore}>
+      <StripeCallbackHandler />
       <AuthProvider
         skip={isSsoRoute}
         redirectToAuthSpa={redirectToAuthSpa}

@@ -11,6 +11,7 @@ import {
   PUBLIC_VIDEO_TENANT,
   type HeygenPrivateVideoResource,
 } from "@/lib/iblai/catalog"
+import { probeImage } from "@/lib/iblai/probe-image"
 
 /**
  * Community lists every video that was published with
@@ -79,12 +80,23 @@ export default function CommunityPage() {
         PUBLIC_VIDEO_TENANT,
       )
       if (requestId !== requestIdRef.current) return
-      setVideos(
-        resources
-          .filter((r) => r.data?.visibility === "public")
-          .filter((r) => !!r.data?.video_url)
-          .map(toCommunityVideo),
+      const candidates = resources
+        .filter((r) => r.data?.visibility === "public")
+        .filter((r) => !!r.data?.video_url)
+        .map(toCommunityVideo)
+
+      // HeyGen asset URLs are signed S3 links that expire. Drop any
+      // card whose thumbnail no longer loads (403/404) so the grid
+      // doesn't show broken images. We probe with an `Image()` —
+      // `fetch(..., no-cors)` returns an opaque response that always
+      // looks 200 to JS, so it can't distinguish good from expired.
+      const probes = await Promise.all(
+        candidates.map((v) =>
+          probeImage(v.thumbnail).then((ok) => ({ v, ok })),
+        ),
       )
+      if (requestId !== requestIdRef.current) return
+      setVideos(probes.filter((p) => p.ok).map((p) => p.v))
     } catch (err) {
       if (requestId !== requestIdRef.current) return
       console.error("[community] load failed:", err)

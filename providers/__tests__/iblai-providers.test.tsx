@@ -46,9 +46,11 @@ vi.mock("@/lib/iblai/auth-utils", () => ({
   redirectToAuthSpa: vi.fn(),
   hasNonExpiredAuthToken: () => true,
   handleLogout: vi.fn(),
+  handleTenantSwitch: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({
   usePathname: () => mockedPathname,
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 import { IblaiProviders } from "@/providers/iblai-providers";

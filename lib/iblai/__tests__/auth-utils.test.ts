@@ -7,6 +7,14 @@ vi.mock("@/lib/iblai/tenant", () => ({
   resolveAppTenant: () => mockedTenant,
 }));
 
+// The helper dynamic-imports `@iblai/iblai-js/web-utils` for
+// `clearCurrentTenantCookie`. Stub it so the test doesn't pull the
+// real SDK module graph in and we can assert the call site.
+const clearCurrentTenantCookie = vi.fn();
+vi.mock("@iblai/iblai-js/web-utils", () => ({
+  clearCurrentTenantCookie,
+}));
+
 let mockedTenant = "acme";
 
 import {
@@ -20,6 +28,7 @@ interface MutableLocation {
   href: string;
   origin: string;
   pathname: string;
+  hostname: string;
 }
 
 const originalLocation = window.location;
@@ -27,7 +36,12 @@ let location: MutableLocation;
 
 function setLocation(href: string) {
   const url = new URL(href);
-  location = { href, origin: url.origin, pathname: url.pathname };
+  location = {
+    href,
+    origin: url.origin,
+    pathname: url.pathname,
+    hostname: url.hostname,
+  };
   Object.defineProperty(window, "location", {
     configurable: true,
     writable: true,
@@ -35,9 +49,37 @@ function setLocation(href: string) {
   });
 }
 
+function clearCookies() {
+  if (typeof document === "undefined") return;
+  for (const c of document.cookie.split(";")) {
+    const eq = c.indexOf("=");
+    const name = (eq > -1 ? c.slice(0, eq) : c).trim();
+    if (!name) continue;
+    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+  }
+}
+
 describe("auth-utils", () => {
+  let cookieWrites: string[];
+  const originalCookieDescriptor = Object.getOwnPropertyDescriptor(
+    Document.prototype,
+    "cookie",
+  );
+
   beforeEach(() => {
     localStorage.clear();
+    clearCookies();
+    clearCurrentTenantCookie.mockClear();
+    // JSDOM rejects `Secure` cookies on its non-HTTPS default URL, so
+    // capture writes ourselves to assert what the helper attempted.
+    cookieWrites = [];
+    Object.defineProperty(document, "cookie", {
+      configurable: true,
+      get: () => cookieWrites.join("; "),
+      set: (val: string) => {
+        cookieWrites.push(val);
+      },
+    });
     mockedTenant = "acme";
     setLocation("https://app.test/current");
   });
@@ -47,6 +89,9 @@ describe("auth-utils", () => {
       writable: true,
       value: originalLocation,
     });
+    if (originalCookieDescriptor) {
+      Object.defineProperty(Document.prototype, "cookie", originalCookieDescriptor);
+    }
     localStorage.clear();
   });
 
@@ -68,14 +113,14 @@ describe("auth-utils", () => {
       expect(url.searchParams.get("logout")).toBe("1");
     });
 
-    it("saves the current path to localStorage when saveRedirect=true", () => {
+    it("saves the current path to localStorage.redirectTo when saveRedirect=true", () => {
       redirectToAuthSpa(undefined, undefined, false, true);
-      expect(localStorage.getItem("redirect-to")).toBe("/current");
+      expect(localStorage.getItem("redirectTo")).toBe("/current");
     });
 
     it("uses an explicit redirectTo value when saving", () => {
       redirectToAuthSpa("/elsewhere", undefined, false, true);
-      expect(localStorage.getItem("redirect-to")).toBe("/elsewhere");
+      expect(localStorage.getItem("redirectTo")).toBe("/elsewhere");
     });
   });
 
@@ -147,6 +192,86 @@ describe("auth-utils", () => {
       await handleTenantSwitch("new-tenant");
       const url = new URL(location.href);
       expect(url.searchParams.get("token")).toBeNull();
+    });
+
+    it("always sends `${origin}` as the auth-SPA redirect-to (never a full URL)", async () => {
+      localStorage.setItem("tenant", "old");
+      await handleTenantSwitch("new-tenant", {
+        redirectUrl: "https://app.test/specific-page?foo=bar",
+      });
+      const url = new URL(location.href);
+      // SsoLogin does `${window.location.origin}${redirectPath}` on the
+      // way back; sending a full URL would concatenate two origins and
+      // log the user out of videoai post-Stripe.
+      expect(url.searchParams.get("redirect-to")).toBe("https://app.test");
+    });
+
+    it("saves the redirectUrl's path+search to localStorage.redirectTo for SsoLogin to read", async () => {
+      localStorage.setItem("tenant", "old");
+      await handleTenantSwitch("new-tenant", {
+        redirectUrl: "https://app.test/specific-page?foo=bar",
+      });
+      expect(localStorage.getItem("redirectTo")).toBe("/specific-page?foo=bar");
+    });
+
+    it("does not touch `redirectTo` localStorage when no redirectUrl is provided", async () => {
+      localStorage.setItem("tenant", "old");
+      await handleTenantSwitch("new-tenant");
+      expect(localStorage.getItem("redirectTo")).toBeNull();
+    });
+
+    it("defaults redirect-to to the origin when no redirectUrl is provided", async () => {
+      localStorage.setItem("tenant", "old");
+      await handleTenantSwitch("new-tenant");
+      const url = new URL(location.href);
+      expect(url.searchParams.get("redirect-to")).toBe("https://app.test");
+    });
+
+    it("accepts a path-only redirectUrl and saves it as-is", async () => {
+      localStorage.setItem("tenant", "old");
+      await handleTenantSwitch("new-tenant", {
+        redirectUrl: "/relative-page?x=1",
+      });
+      expect(localStorage.getItem("redirectTo")).toBe("/relative-page?x=1");
+    });
+
+    it("sets the cross-SPA `ibl_tenant_switching` cookie before redirecting", async () => {
+      localStorage.setItem("tenant", "old");
+      await handleTenantSwitch("new-tenant");
+      const wrote = cookieWrites.find((c) =>
+        c.startsWith("ibl_tenant_switching="),
+      );
+      expect(wrote).toBeDefined();
+      expect(wrote).toContain("ibl_tenant_switching=true");
+      expect(wrote).toContain("path=/");
+    });
+
+    it("does not set the cookie when the call is a no-op (same tenant)", async () => {
+      localStorage.setItem("tenant", "acme");
+      await handleTenantSwitch("acme");
+      expect(
+        cookieWrites.some((c) => c.startsWith("ibl_tenant_switching=")),
+      ).toBe(false);
+    });
+
+    it("clears the SDK's `current_tenant` cookie before redirecting", async () => {
+      localStorage.setItem("tenant", "old");
+      await handleTenantSwitch("new-tenant");
+      expect(clearCurrentTenantCookie).toHaveBeenCalledTimes(1);
+    });
+
+    it("bails (no redirect, no cookie) when ibl_tenant_switching is already set", async () => {
+      cookieWrites.push("ibl_tenant_switching=true;path=/");
+      localStorage.setItem("tenant", "old");
+      const before = location.href;
+      await handleTenantSwitch("new-tenant");
+      expect(location.href).toBe(before);
+      // No NEW switching cookie was written on top of the existing one.
+      const writes = cookieWrites.filter((c) =>
+        c.startsWith("ibl_tenant_switching="),
+      );
+      expect(writes).toHaveLength(1);
+      expect(clearCurrentTenantCookie).not.toHaveBeenCalled();
     });
   });
 });
