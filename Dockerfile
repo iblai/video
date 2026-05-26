@@ -30,8 +30,9 @@ RUN pnpm i --frozen-lockfile --ignore-scripts
 FROM base AS builder
 
 # Build-time args. `NEXT_PUBLIC_BASE_PATH` is baked into the bundle —
-# changing the mount path requires a rebuild.
-ARG NEXT_PUBLIC_BASE_PATH=/videoai
+# changing the mount path requires a rebuild. Defaults to root (`/`);
+# pass `--build-arg NEXT_PUBLIC_BASE_PATH=/videoai` for a sub-path mount.
+ARG NEXT_PUBLIC_BASE_PATH=
 ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
 
 ENV NODE_OPTIONS="--max-old-space-size=8192"
@@ -54,7 +55,7 @@ WORKDIR /app
 # substitutes shell vars into `/app/public/env.js`) sees them. Without
 # this, `${NEXT_PUBLIC_BASE_PATH}` renders empty in the runtime env.js
 # even though it was baked into the compiled client bundles.
-ARG NEXT_PUBLIC_BASE_PATH=/videoai
+ARG NEXT_PUBLIC_BASE_PATH=
 ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
 
 # Next sets `NODE_ENV=production` internally after server boot, but the
