@@ -24,7 +24,7 @@ COPY pnpm-lock.yaml .
 # fatal `ERR_PNPM_IGNORED_BUILDS`. The Next build doesn't need either
 # native binary at runtime -- images are unoptimized and PDF/canvas
 # work runs server-side via API proxies, not on the host node.
-RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm i --frozen-lockfile --ignore-scripts
 
 # Stage 1: Builder
 FROM base AS builder

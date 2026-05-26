@@ -1,5 +1,9 @@
 {
+  "pnpm": {
+      "ignoredBuiltDependencies": ["*"]
+  },
   "name": "videoai",
+  "packageManager": "pnpm@11.3.0",
   "version": "1.0.10",
   "private": true,
   "scripts": {
