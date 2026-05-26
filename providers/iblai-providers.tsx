@@ -16,7 +16,7 @@
  *   }
  */
 
-import { useMemo, useState, type ReactNode } from "react";
+import { Suspense, useMemo, useState, type ReactNode } from "react";
 import { Provider as ReduxProvider } from "react-redux";
 import { usePathname } from "next/navigation";
 import { initializeDataLayer } from "@iblai/iblai-js/data-layer";
@@ -106,7 +106,11 @@ export function IblaiProviders({ children }: { children: ReactNode }) {
 
   return (
     <ReduxProvider store={iblaiStore}>
-      <StripeCallbackHandler />
+      {/* `useSearchParams` opts the subtree out of static prerendering;
+          wrap in Suspense so the rest of the layout can still be SSG'd. */}
+      <Suspense fallback={null}>
+        <StripeCallbackHandler />
+      </Suspense>
       <AuthProvider
         skip={isSsoRoute}
         redirectToAuthSpa={redirectToAuthSpa}
