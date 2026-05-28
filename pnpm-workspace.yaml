@@ -1,9 +1,16 @@
 allowBuilds:
   canvas: set this to true or false
   sharp: set this to true or false
+# `@iblai/*` is exempt from the 7-day min-release-age guardrail (also
+# expressed in `.npmrc` for new resolutions; this list satisfies the
+# lockfile verification step). Use unversioned names so the entries
+# stay valid across SDK bumps -- pnpm matches by package name.
 minimumReleaseAgeExclude:
-  - '@iblai/data-layer@1.6.3'
-  - '@iblai/iblai-js@1.13.3'
-  - '@iblai/mcp@1.5.2'
-  - '@iblai/web-containers@1.8.4'
-  - '@iblai/web-utils@1.8.1'
+  - '@iblai/iblai-js'
+  - '@iblai/web-containers'
+  - '@iblai/web-utils'
+  - '@iblai/data-layer'
+  - '@iblai/agent-ai'
+  - '@iblai/iblai-api'
+  - '@iblai/iblai-web-mentor'
+  - '@iblai/mcp'
