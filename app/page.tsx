@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { hasNonExpiredAuthToken, redirectToAuthSpa } from "@/lib/iblai/auth-utils"
+import { redirectToAuthSpa } from "@iblai/iblai-js/web-utils"
+import { authSpaOptions, hasNonExpiredAuthToken } from "@/lib/iblai/auth-utils"
 import { useIsAdmin } from "@/hooks/use-is-admin"
 import { useHasHeygenCredential } from "@/hooks/use-has-heygen-credential"
 
@@ -22,7 +23,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!hasNonExpiredAuthToken()) {
-      redirectToAuthSpa()
+      void redirectToAuthSpa(authSpaOptions())
       return
     }
     if (!resolved) return

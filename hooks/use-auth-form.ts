@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { redirectToAuthSpa } from "@/lib/iblai/auth-utils"
+import { redirectToAuthSpa } from "@iblai/iblai-js/web-utils"
+import { authSpaOptions } from "@/lib/iblai/auth-utils"
 
 export function useAuthForm() {
   const [email, setEmail] = useState("")
@@ -13,12 +14,12 @@ export function useAuthForm() {
 
   const handleContinue = () => {
     // Redirect to ibl.ai SSO login
-    redirectToAuthSpa()
+    void redirectToAuthSpa(authSpaOptions())
   }
 
   const handlePasswordContinue = () => {
     // Redirect to ibl.ai SSO login
-    redirectToAuthSpa()
+    void redirectToAuthSpa(authSpaOptions())
   }
 
   const handlePasswordLogin = () => {

@@ -1,11 +1,12 @@
 "use client"
 
 import { useEffect } from "react"
-import { redirectToAuthSpa } from "@/lib/iblai/auth-utils"
+import { redirectToAuthSpa } from "@iblai/iblai-js/web-utils"
+import { authSpaOptions } from "@/lib/iblai/auth-utils"
 
 export default function LoginPage() {
   useEffect(() => {
-    redirectToAuthSpa()
+    void redirectToAuthSpa(authSpaOptions())
   }, [])
 
   return (

@@ -2,8 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 
 const redirectMock = vi.fn();
-vi.mock("@/lib/iblai/auth-utils", () => ({
+// `useAuthForm` now calls the SDK's `redirectToAuthSpa` directly and
+// only pulls `authSpaOptions` from local auth-utils.
+vi.mock("@iblai/iblai-js/web-utils", () => ({
   redirectToAuthSpa: (...args: unknown[]) => redirectMock(...args),
+}));
+vi.mock("@/lib/iblai/auth-utils", () => ({
+  authSpaOptions: () => ({ authUrl: "https://auth.test", appName: "custom" }),
 }));
 
 import { useAuthForm } from "@/hooks/use-auth-form";

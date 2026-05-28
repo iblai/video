@@ -27,6 +27,8 @@
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
     "@iblai/agent-ai": "^2.6.0",
+    "@livekit/components-react": "2.9.21",
+    "@livekit/components-styles": "1.2.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
@@ -86,8 +88,10 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@iblai/iblai-js": "^1.10.0",
+    "@iblai/iblai-js": "^1.13.3",
     "@playwright/test": "^1.59.1",
+    "@tauri-apps/api": "2.11.0",
+    "@tauri-apps/plugin-os": "2.3.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

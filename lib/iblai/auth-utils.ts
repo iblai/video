@@ -2,65 +2,43 @@
 /**
  * ibl.ai auth helper utilities.
  *
- * These are thin wrappers used by IblaiProviders. You can customise the
- * redirect behaviour here without touching the provider component.
+ * Redirects to the Auth SPA go through `redirectToAuthSpa(options)` from
+ * `@iblai/iblai-js/web-utils` at every call site. This module only
+ * exports the static, app-specific options (`authSpaOptions`) plus the
+ * token-expiry check the SDK depends on, the logout helper, and the
+ * tenant-switch flow.
+ *
+ * NOTE: the SDK hardcodes the `redirect-to` query param to
+ * `window.location.origin`. The previous `originWithBasePath()` (which
+ * appended `NEXT_PUBLIC_BASE_PATH`) is dropped, so sub-path deployments
+ * will land at the bare origin after login. Re-introduce via an SDK PR
+ * exposing a `redirectToUrl` option.
  */
+
+import type { RedirectToAuthSpaOptions } from "@iblai/iblai-js/web-utils";
 
 import config from "./config";
 import { resolveAppTenant } from "./tenant";
-import { getBasePath } from "./base-path";
 
 /**
- * `window.location.origin` + the configured sub-path prefix. The Auth
- * SPA's `redirect-to` callback must point at the app's actual mount
- * point -- with sub-path deployment that is `<origin><basePath>`, not
- * the bare origin (otherwise post-login lands at the wrong path and
- * 404s when the host has no root app).
- */
-function originWithBasePath(): string {
-  if (typeof window === "undefined") return "";
-  return `${window.location.origin}${getBasePath()}`;
-}
-
-/**
- * Navigate to a URL.
+ * Parse an `axd_token_expires` value written by the Auth SPA into a
+ * millisecond timestamp. The SPA can send any of:
+ *   - ISO string ("2099-01-01T00:00:00Z")
+ *   - epoch in milliseconds ("1735689600000")
+ *   - epoch in seconds  ("1735689600")
  *
- * On Tauri mobile, `window.location.href` is blocked by the Android
- * WebView for external URLs. This helper calls the `navigate_to` Tauri
- * command which uses `Webview::navigate()` (maps to `WebView.loadUrl()`),
- * bypassing the system filter.
+ * Epoch strings fed straight to `new Date(...)` return `Invalid Date`,
+ * so without this every post-login check reported the token as expired
+ * and the SDK looped back to the Auth SPA.
  */
-function navigateTo(url: string) {
-  window.location.href = url;
-}
-
-/** Redirect the browser to the ibl.ai Auth SPA for login. */
-export function redirectToAuthSpa(
-  redirectTo?: string,
-  platformKey?: string,
-  logout?: boolean,
-  saveRedirect?: boolean,
-) {
-  const origin = originWithBasePath();
-  // `window.location.pathname` already includes the basePath when the
-  // app is mounted under one -- keep it intact so the saved
-  // redirect-to round-trips back to the same page after login.
-  const path = redirectTo ?? (typeof window !== "undefined" ? window.location.pathname : "/");
-
-  if (saveRedirect) {
-    // localStorage uses camelCase to match the SDK's `SsoLogin`
-    // `redirectPathKey="redirectTo"`. URL query stays kebab-case.
-    localStorage.setItem("redirectTo", path);
+function parseExpiryMs(raw: string): number {
+  const trimmed = raw.trim();
+  if (/^-?\d+$/.test(trimmed)) {
+    const n = Number(trimmed);
+    return n < 1e12 ? n * 1000 : n;
   }
-
-  const params = new URLSearchParams({
-    "redirect-to": origin,
-    app: "custom",
-  });
-  if (platformKey) params.set("tenant", platformKey);
-  if (logout) params.set("logout", "1");
-
-  navigateTo(`${config.authUrl()}/login?${params.toString()}`);
+  const parsed = Date.parse(trimmed);
+  return Number.isNaN(parsed) ? NaN : parsed;
 }
 
 /** Check whether a non-expired auth token exists in localStorage. */
@@ -70,21 +48,40 @@ export function hasNonExpiredAuthToken(): boolean {
   if (!token) return false;
   const expiry = localStorage.getItem("axd_token_expires");
   if (!expiry) return false;
-  return new Date(expiry) > new Date();
+  const expiryMs = parseExpiryMs(expiry);
+  if (!Number.isFinite(expiryMs)) return false;
+  return expiryMs > Date.now();
+}
+
+/**
+ * Per-app defaults to spread into every SDK `redirectToAuthSpa` call.
+ *
+ *   import { redirectToAuthSpa } from "@iblai/iblai-js/web-utils";
+ *   import { authSpaOptions } from "@/lib/iblai/auth-utils";
+ *   redirectToAuthSpa({ ...authSpaOptions(), logout: true });
+ */
+export function authSpaOptions(): RedirectToAuthSpaOptions {
+  return {
+    authUrl: config.authUrl(),
+    appName: "custom",
+    platformKey: resolveAppTenant(),
+    redirectPathStorageKey: "redirectTo",
+    hasNonExpiredAuthToken,
+  };
 }
 
 /** Handle logout: clear state and redirect to the Auth SPA logout page. */
 export function handleLogout() {
   const tenant = resolveAppTenant();
-  const origin = originWithBasePath();
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
   localStorage.clear();
-  navigateTo(`${config.authUrl()}/logout?redirect-to=${origin}&tenant=${tenant}`);
+  window.location.href = `${config.authUrl()}/logout?redirect-to=${origin}&tenant=${tenant}`;
 }
 
 export interface TenantSwitchOptions {
   /**
    * Override the post-switch landing URL. Defaults to
-   * `${origin}${basePath}`. Pass the current page (minus any
+   * `window.location.origin`. Pass the current page (minus any
    * transient query params) to return the user to the same view.
    */
   redirectUrl?: string;
@@ -105,9 +102,6 @@ export async function handleTenantSwitch(
 ) {
   if (typeof window === "undefined") return;
 
-  // Re-entrancy guard: another tab / a previous mount may have already
-  // kicked off a tenant switch. Bailing prevents the cross-SPA cookie
-  // from being clobbered mid-round-trip.
   if (
     typeof document !== "undefined" &&
     document.cookie.includes("ibl_tenant_switching")
@@ -117,15 +111,8 @@ export async function handleTenantSwitch(
 
   if (!tenant || tenant === localStorage.getItem("tenant")) return;
 
-  // Mark the switch in progress BEFORE any other writes so concurrent
-  // mounts see the guard.
   setCrossSpaCookie("ibl_tenant_switching", "true");
 
-  // Clear the SDK's cross-SPA `current_tenant` cookie. If we leave it
-  // set, the auth SPA reads the stale OLD tenant on the round trip,
-  // refuses to issue tokens for the new tenant, and the user lands
-  // logged out. This must happen BEFORE the localStorage clear and
-  // the navigation away.
   try {
     const { clearCurrentTenantCookie } = await import(
       "@iblai/iblai-js/web-utils"
@@ -136,15 +123,8 @@ export async function handleTenantSwitch(
   }
 
   const jwtToken = localStorage.getItem("edx_jwt_token");
-  const origin = originWithBasePath();
+  const origin = window.location.origin;
 
-  // The auth-SPA round trip lands on /sso-login-complete, where the
-  // SDK's `SsoLogin` component does
-  // `window.location.href = ${window.location.origin}${redirectPath}`.
-  // That breaks when `redirectPath` is a full URL (two origins get
-  // concatenated). Always send `${origin}` as the `redirect-to` URL
-  // query and save just the path+search to `localStorage.redirectTo`
-  // so SsoLogin reads it back cleanly.
   let redirectPath: string | null = null;
   if (options.redirectUrl) {
     try {
@@ -157,10 +137,6 @@ export async function handleTenantSwitch(
 
   localStorage.clear();
   localStorage.setItem("tenant", tenant);
-  // localStorage uses `redirectTo` (camelCase) — matches
-  // `redirectPathKey="redirectTo"` on app/sso-login-complete/page.tsx
-  // and the key the SDK's `SsoLogin` component reads on the way back.
-  // The URL query param to the auth SPA stays kebab-case (`redirect-to`).
   if (redirectPath) localStorage.setItem("redirectTo", redirectPath);
 
   const params = new URLSearchParams({
@@ -169,12 +145,9 @@ export async function handleTenantSwitch(
   });
   if (jwtToken) params.set("token", jwtToken);
 
-  // Tiny delay lets the cookie writes flush before navigation —
-  // without it the auth SPA can read stale cookies set on this tick
-  // and refuse to issue tokens.
   await new Promise((resolve) => setTimeout(resolve, 100));
 
-  navigateTo(`${config.authUrl()}/login/complete?${params.toString()}`);
+  window.location.href = `${config.authUrl()}/login/complete?${params.toString()}`;
 }
 
 function setCrossSpaCookie(name: string, value: string, days = 365) {

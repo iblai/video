@@ -18,10 +18,10 @@ vi.mock("@iblai/iblai-js/web-utils", () => ({
 let mockedTenant = "acme";
 
 import {
+  authSpaOptions,
   handleLogout,
   handleTenantSwitch,
   hasNonExpiredAuthToken,
-  redirectToAuthSpa,
 } from "@/lib/iblai/auth-utils";
 
 interface MutableLocation {
@@ -95,32 +95,24 @@ describe("auth-utils", () => {
     localStorage.clear();
   });
 
-  describe("redirectToAuthSpa", () => {
-    it("navigates to /login with app=custom and origin in redirect-to", () => {
-      redirectToAuthSpa();
-      const url = new URL(location.href);
-      expect(url.origin + url.pathname).toBe("https://auth.test/login");
-      expect(url.searchParams.get("redirect-to")).toBe("https://app.test");
-      expect(url.searchParams.get("app")).toBe("custom");
-      expect(url.searchParams.get("tenant")).toBeNull();
-      expect(url.searchParams.get("logout")).toBeNull();
+  describe("authSpaOptions", () => {
+    it("returns the per-app defaults to spread into SDK redirectToAuthSpa calls", () => {
+      const opts = authSpaOptions();
+      expect(opts.authUrl).toBe("https://auth.test");
+      expect(opts.appName).toBe("custom");
+      expect(opts.platformKey).toBe("acme");
+      // SsoLogin reads this key on the way back; SDK default is
+      // `redirect_to` which would drop the saved redirect path.
+      expect(opts.redirectPathStorageKey).toBe("redirectTo");
+      // SDK's cross-SPA login/logout-timestamp guard depends on this.
+      expect(typeof opts.hasNonExpiredAuthToken).toBe("function");
     });
 
-    it("includes tenant and logout flags when provided", () => {
-      redirectToAuthSpa(undefined, "acme", true, false);
-      const url = new URL(location.href);
-      expect(url.searchParams.get("tenant")).toBe("acme");
-      expect(url.searchParams.get("logout")).toBe("1");
-    });
-
-    it("saves the current path to localStorage.redirectTo when saveRedirect=true", () => {
-      redirectToAuthSpa(undefined, undefined, false, true);
-      expect(localStorage.getItem("redirectTo")).toBe("/current");
-    });
-
-    it("uses an explicit redirectTo value when saving", () => {
-      redirectToAuthSpa("/elsewhere", undefined, false, true);
-      expect(localStorage.getItem("redirectTo")).toBe("/elsewhere");
+    it("re-reads the active tenant on each call (no stale closure)", () => {
+      mockedTenant = "first";
+      expect(authSpaOptions().platformKey).toBe("first");
+      mockedTenant = "second";
+      expect(authSpaOptions().platformKey).toBe("second");
     });
   });
 
@@ -144,6 +136,30 @@ describe("auth-utils", () => {
       localStorage.setItem("axd_token", "t");
       localStorage.setItem("axd_token_expires", "2999-01-01T00:00:00.000Z");
       expect(hasNonExpiredAuthToken()).toBe(true);
+    });
+
+    it("parses epoch-milliseconds expiry", () => {
+      localStorage.setItem("axd_token", "t");
+      localStorage.setItem(
+        "axd_token_expires",
+        String(Date.now() + 60_000),
+      );
+      expect(hasNonExpiredAuthToken()).toBe(true);
+    });
+
+    it("parses epoch-seconds expiry", () => {
+      localStorage.setItem("axd_token", "t");
+      localStorage.setItem(
+        "axd_token_expires",
+        String(Math.floor(Date.now() / 1000) + 60),
+      );
+      expect(hasNonExpiredAuthToken()).toBe(true);
+    });
+
+    it("returns false when expiry is unparseable", () => {
+      localStorage.setItem("axd_token", "t");
+      localStorage.setItem("axd_token_expires", "not-a-date");
+      expect(hasNonExpiredAuthToken()).toBe(false);
     });
   });
 

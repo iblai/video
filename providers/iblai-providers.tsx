@@ -20,14 +20,18 @@ import { Suspense, useMemo, useState, type ReactNode } from "react";
 import { Provider as ReduxProvider } from "react-redux";
 import { usePathname } from "next/navigation";
 import { initializeDataLayer } from "@iblai/iblai-js/data-layer";
-import { AuthProvider, TenantProvider } from "@iblai/iblai-js/web-utils";
+import {
+  AuthProvider,
+  TenantProvider,
+  redirectToAuthSpa,
+} from "@iblai/iblai-js/web-utils";
 
 import { iblaiStore } from "@/store/iblai-store";
 import { LocalStorageService } from "@/lib/iblai/storage-service";
 import config from "@/lib/iblai/config";
 import { resolveAppTenant } from "@/lib/iblai/tenant";
 import {
-  redirectToAuthSpa,
+  authSpaOptions,
   hasNonExpiredAuthToken,
   handleLogout,
 } from "@/lib/iblai/auth-utils";
@@ -58,7 +62,7 @@ export function IblaiProviders({ children }: { children: ReactNode }) {
         config.lmsUrl(),  // legacyLmsUrl (same as lmsUrl for consolidated API)
         storageService,
         {
-          401: () => redirectToAuthSpa(undefined, undefined, true),
+          401: () => redirectToAuthSpa({ ...authSpaOptions(), logout: true }),
         },
       );
     } catch (e) {
@@ -113,7 +117,15 @@ export function IblaiProviders({ children }: { children: ReactNode }) {
       </Suspense>
       <AuthProvider
         skip={isSsoRoute}
-        redirectToAuthSpa={redirectToAuthSpa}
+        redirectToAuthSpa={(redirectTo, platformKey, logout, saveRedirect) =>
+          redirectToAuthSpa({
+            ...authSpaOptions(),
+            redirectTo,
+            platformKey,
+            logout,
+            saveRedirect,
+          })
+        }
         hasNonExpiredAuthToken={hasNonExpiredAuthToken}
         username={username}
         pathname={pathname ?? "/"}
@@ -136,9 +148,21 @@ export function IblaiProviders({ children }: { children: ReactNode }) {
           }
           handleTenantSwitch={async () => {
             const tenant = resolveAppTenant();
-            redirectToAuthSpa(undefined, tenant, false, true);
+            redirectToAuthSpa({
+              ...authSpaOptions(),
+              platformKey: tenant,
+              saveRedirect: true,
+            });
           }}
-          redirectToAuthSpa={redirectToAuthSpa}
+          redirectToAuthSpa={(redirectTo, platformKey, logout, saveRedirect) =>
+            redirectToAuthSpa({
+              ...authSpaOptions(),
+              redirectTo,
+              platformKey,
+              logout,
+              saveRedirect,
+            })
+          }
           username={username}
           fallback={LOADING}
         >

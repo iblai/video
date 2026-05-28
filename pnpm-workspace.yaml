@@ -1,3 +1,9 @@
 allowBuilds:
   canvas: set this to true or false
   sharp: set this to true or false
+minimumReleaseAgeExclude:
+  - '@iblai/data-layer@1.6.3'
+  - '@iblai/iblai-js@1.13.3'
+  - '@iblai/mcp@1.5.2'
+  - '@iblai/web-containers@1.8.4'
+  - '@iblai/web-utils@1.8.1'

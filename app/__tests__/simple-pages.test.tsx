@@ -7,8 +7,13 @@ const replaceMock = vi.fn();
 const backMock = vi.fn();
 let mockedTenant = "acme";
 
-vi.mock("@/lib/iblai/auth-utils", () => ({
+// HomePage / LoginPage now call the SDK's `redirectToAuthSpa` directly
+// and only pull `authSpaOptions` from local auth-utils.
+vi.mock("@iblai/iblai-js/web-utils", () => ({
   redirectToAuthSpa: (...a: unknown[]) => redirectMock(...a),
+}));
+vi.mock("@/lib/iblai/auth-utils", () => ({
+  authSpaOptions: () => ({ authUrl: "https://auth.test", appName: "custom" }),
   hasNonExpiredAuthToken: () => hasNonExpiredAuthTokenMock(),
 }));
 vi.mock("@/lib/iblai/tenant", () => ({
