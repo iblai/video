@@ -18,6 +18,9 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # Copy package manifests first for layer caching.
 COPY package.json .
 COPY pnpm-lock.yaml .
+COPY pnpm-workspace.yaml .
+
+
 
 # Install deps. `--ignore-scripts` skips package postinstall scripts
 # (canvas/sharp native compile) which pnpm 11+ otherwise treats as a

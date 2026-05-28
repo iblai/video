@@ -6,11 +6,4 @@ allowBuilds:
 # lockfile verification step). Use unversioned names so the entries
 # stay valid across SDK bumps -- pnpm matches by package name.
 minimumReleaseAgeExclude:
-  - '@iblai/iblai-js'
-  - '@iblai/web-containers'
-  - '@iblai/web-utils'
-  - '@iblai/data-layer'
-  - '@iblai/agent-ai'
-  - '@iblai/iblai-api'
-  - '@iblai/iblai-web-mentor'
-  - '@iblai/mcp'
+  - '@iblai/*'
