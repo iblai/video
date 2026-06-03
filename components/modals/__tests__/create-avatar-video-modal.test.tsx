@@ -24,6 +24,18 @@ vi.mock("@/components/modals/choose-voice-modal", () => ({
 vi.mock("@/components/modals/record-audio-modal", () => ({
   RecordAudioModal: () => <div data-testid="record-modal" />,
 }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/",
+}));
 
 import { CreateAvatarVideoModal } from "@/components/modals/create-avatar-video-modal";
 

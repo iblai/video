@@ -17,7 +17,7 @@
  */
 
 import { Suspense, useMemo, useState, type ReactNode } from "react";
-import { Provider as ReduxProvider } from "react-redux";
+import { Provider as ReduxProvider, useSelector } from "react-redux";
 import { usePathname } from "next/navigation";
 import { initializeDataLayer } from "@iblai/iblai-js/data-layer";
 import {
@@ -27,6 +27,7 @@ import {
 } from "@iblai/iblai-js/web-utils";
 
 import { iblaiStore } from "@/store/iblai-store";
+import { selectRequestedTenant } from "@/features/tenant";
 import { LocalStorageService } from "@/lib/iblai/storage-service";
 import config from "@/lib/iblai/config";
 import { resolveAppTenant } from "@/lib/iblai/tenant";
@@ -34,6 +35,7 @@ import {
   authSpaOptions,
   hasNonExpiredAuthToken,
   handleLogout,
+  handleTenantSwitch as runTenantSwitch,
 } from "@/lib/iblai/auth-utils";
 import { StripeCallbackHandler } from "@/components/iblai/stripe-callback-handler";
 
@@ -44,7 +46,7 @@ const PUBLIC_ROUTES = new Map<RegExp, () => Promise<boolean>>([
   [new RegExp("^/sso-login"), async () => false],
 ]);
 
-export function IblaiProviders({ children }: { children: ReactNode }) {
+function IblaiProvidersInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   // initializeDataLayer MUST be called synchronously before any children
@@ -83,6 +85,12 @@ export function IblaiProviders({ children }: { children: ReactNode }) {
   // Tenant resolution: localStorage tenant
   const tenantKey = useMemo(() => resolveAppTenant(), [isInitialized]);
 
+  // `requestedTenant` lives in the Redux tenant slice so callers can
+  // dispatch a switch from anywhere; `currentTenant` is whatever the
+  // localStorage already holds. The SDK's TenantProvider compares the
+  // two and triggers a tenant switch when they diverge.
+  const requestedTenant = useSelector(selectRequestedTenant);
+
   const isSsoRoute = pathname?.startsWith("/sso-login") ?? false;
 
   const LOADING = (
@@ -109,7 +117,7 @@ export function IblaiProviders({ children }: { children: ReactNode }) {
   const storageSyncEnabled = !envDisabled && !lsDisabled;
 
   return (
-    <ReduxProvider store={iblaiStore}>
+    <>
       {/* `useSearchParams` opts the subtree out of static prerendering;
           wrap in Suspense so the rest of the layout can still be SSG'd. */}
       <Suspense fallback={null}>
@@ -137,7 +145,7 @@ export function IblaiProviders({ children }: { children: ReactNode }) {
         <TenantProvider
           skip={isSsoRoute}
           currentTenant={tenantKey}
-          requestedTenant={tenantKey}
+          requestedTenant={requestedTenant}
           saveCurrentTenant={(t: any) => {
             const key = typeof t === "string" ? t : t?.key ?? String(t);
             localStorage.setItem("current_tenant", key);
@@ -146,11 +154,36 @@ export function IblaiProviders({ children }: { children: ReactNode }) {
           saveUserTenants={(t: unknown) =>
             localStorage.setItem("tenants", JSON.stringify(t))
           }
-          handleTenantSwitch={async () => {
-            const tenant = resolveAppTenant();
+          handleTenantSwitch={async (tenant, saveRedirect) => {
+            // Only perform a real switch when the app explicitly asked
+            // for it via the Redux tenant slice (dispatch
+            // `updateRequestedTenant(key)`) and the SDK's requested key
+            // matches. Otherwise the SDK initiated the switch on its
+            // own — usually because `currentTenant` wasn't found in the
+            // user's fetched tenant list and it's falling back to
+            // `enhancedTenants[0]`. Performing that switch would call
+            // `runTenantSwitch` -> `localStorage.clear()` and wipe the
+            // user's tenants list, which hides the switcher dropdown.
+            // In that case, just bounce through the auth SPA for the
+            // user's existing tenant so localStorage is preserved.
+            const key =
+              typeof tenant === "string"
+                ? tenant
+                : ((tenant as { key?: string } | null | undefined)?.key ?? "");
+            if (key && requestedTenant && key === requestedTenant) {
+              // videoai's handleTenantSwitch supports `redirectUrl`,
+              // not `saveRedirect`; translate by passing the current
+              // page so the user lands back where they were.
+              const redirectUrl =
+                saveRedirect && typeof window !== "undefined"
+                  ? window.location.href
+                  : undefined;
+              await runTenantSwitch(key, { redirectUrl });
+              return;
+            }
             redirectToAuthSpa({
               ...authSpaOptions(),
-              platformKey: tenant,
+              platformKey: resolveAppTenant(),
               saveRedirect: true,
             });
           }}
@@ -169,6 +202,14 @@ export function IblaiProviders({ children }: { children: ReactNode }) {
           {children}
         </TenantProvider>
       </AuthProvider>
+    </>
+  );
+}
+
+export function IblaiProviders({ children }: { children: ReactNode }) {
+  return (
+    <ReduxProvider store={iblaiStore}>
+      <IblaiProvidersInner>{children}</IblaiProvidersInner>
     </ReduxProvider>
   );
 }

@@ -29,6 +29,18 @@ vi.mock("@/components/modals/video-player-modal", () => ({
 vi.mock("@iblai/iblai-js/web-containers", () => ({
   Loader: () => <div data-testid="loader" />,
 }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/videos/my",
+}));
 
 import MyVideoClipsPage from "@/app/videos/my/page";
 

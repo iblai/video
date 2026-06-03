@@ -22,6 +22,13 @@ vi.mock("react-redux", () => ({
   Provider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="redux-provider">{children}</div>
   ),
+  // IblaiProvidersInner subscribes to the tenant slice via `useSelector`
+  // to drive `<TenantProvider requestedTenant={...}>`. The store is
+  // mocked away, so return an empty string (the slice's initial value).
+  useSelector: () => "",
+}));
+vi.mock("@/features/tenant", () => ({
+  selectRequestedTenant: vi.fn(),
 }));
 vi.mock("@/store/iblai-store", () => ({ iblaiStore: {} }));
 vi.mock("@/lib/iblai/storage-service", () => ({
@@ -92,14 +99,18 @@ describe("IblaiProviders", () => {
     expect(screen.getByText("child")).toBeInTheDocument();
   });
 
-  it("passes the resolved tenant as currentTenant + requestedTenant", () => {
+  it("passes the resolved tenant as currentTenant and the slice value as requestedTenant", () => {
     render(
       <IblaiProviders>
         <span>child</span>
       </IblaiProviders>,
     );
+    // `currentTenant` is the localStorage-resolved tenant the user is
+    // signed into; `requestedTenant` is decoupled — it comes from the
+    // Redux tenant slice (mocked to "") so the SDK only triggers a
+    // switch when something explicitly dispatches `updateRequestedTenant`.
     expect(tenantProviderProps.current.currentTenant).toBe("acme");
-    expect(tenantProviderProps.current.requestedTenant).toBe("acme");
+    expect(tenantProviderProps.current.requestedTenant).toBe("");
   });
 
   it("forwards the username from localStorage", () => {

@@ -40,6 +40,16 @@ vi.mock("@iblai/iblai-js/web-containers/next", () => ({
 vi.mock("@/components/video-generator", () => ({
   VideoGenerator: () => <div data-testid="video-generator" />,
 }));
+// HomePage now branches on `useIsAdmin` + `useHasHeygenCredential`:
+// admin + heygen="ok" lands at /ai-avatar/generate, anything else at
+// /community. Mock both to the "admin with HeyGen" path so the
+// existing redirect assertion stays meaningful.
+vi.mock("@/hooks/use-is-admin", () => ({
+  useIsAdmin: () => true,
+}));
+vi.mock("@/hooks/use-has-heygen-credential", () => ({
+  useHasHeygenCredential: () => "ok",
+}));
 
 import HomePage from "@/app/page";
 import LoginPage from "@/app/login/page";
@@ -70,6 +80,12 @@ describe("HomePage", () => {
   it("redirects to /ai-avatar/generate when authenticated", async () => {
     hasNonExpiredAuthTokenMock.mockReturnValue(true);
     render(<HomePage />);
+    // HomePage gates routing on a `resolved` flag set in a 0-ms timeout
+    // (so an admin isn't misrouted on the initial `useIsAdmin=false`).
+    // Flush timers + effects before asserting.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
     expect(replaceMock).toHaveBeenCalledWith("/ai-avatar/generate");
   });
 
