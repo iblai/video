@@ -7,7 +7,7 @@
   },
   "name": "videoai",
   "packageManager": "pnpm@11.3.0",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "private": true,
   "scripts": {
     "prebuild": "next telemetry disable",
