@@ -2,7 +2,7 @@
 
 <a href="https://ibl.ai"><img src="https://ibl.ai/images/iblai-logo.png" alt="ibl.ai" width="300"></a>
 
-# videoAI
+# Video
 
 An AI video studio for generating avatar videos, cloning voices, and authoring scripts.
 
@@ -11,16 +11,15 @@ An AI video studio for generating avatar videos, cloning voices, and authoring s
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-CC785C?logoColor=white)](https://claude.ai)
 [![Desktop & Mobile](https://img.shields.io/badge/Desktop_%26_Mobile-supported-blue)](https://github.com/iblai/vibe/blob/main/skills/iblai-ops-build/SKILL.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](#license)
 
 </div>
 
 ---
 
----
+## What is Video
 
-## What is videoAI
-
-
+Video is an AI video studio on the [ibl.ai](https://ibl.ai) platform: pick or create an avatar, clone a voice, write or transcribe a script, and generate a finished video from one workspace.
 
 Watch the video demo here:
 
@@ -35,7 +34,7 @@ More screenshots:
 
 
 
-videoAI is an end-to-end video generation workspace. Pick or create an avatar, clone a voice, write or transcribe a script, and generate a finished video — all from one web app powered by the [@iblai/iblai-js](https://www.npmjs.com/package/@iblai/iblai-js) SDK and connected to `iblai.app`. The HeyGen and OpenAI API keys are never called directly from the browser: tenant-scoped server proxies resolve the integration credentials through ibl.ai API and forward each request upstream.
+Video is an end-to-end video generation workspace. Pick or create an avatar, clone a voice, write or transcribe a script, and generate a finished video — all from one web app powered by the [@iblai/iblai-js](https://www.npmjs.com/package/@iblai/iblai-js) SDK and connected to `iblai.app`. The HeyGen and OpenAI API keys are never called directly from the browser: tenant-scoped server proxies resolve the integration credentials through ibl.ai API and forward each request upstream.
 
 | Feature | Description |
 |---------|-------------|
@@ -52,7 +51,7 @@ videoAI is an end-to-end video generation workspace. Pick or create an avatar, c
 
 ## Audience
 
-videoAI is for platform admins who've added a HeyGen API key to their ibl.ai settings. Non-admins land on a "Platform admin required" screen, and tenants without a `heygen` integration credential see a setup gate until one is registered.
+Video is for platform admins who've added a HeyGen API key to their ibl.ai settings. Non-admins land on a "Platform admin required" screen, and tenants without a `heygen` integration credential see a setup gate until one is registered.
 
 
 ## Quick Start
@@ -113,7 +112,7 @@ pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). You'll be redirected to `https://login.iblai.app` for SSO and you will return to the `videoAI` app after auth.
+Open [http://localhost:3000](http://localhost:3000). You'll be redirected to `https://login.iblai.app` for SSO and you will return to the `Video` app after auth.
 
 `.env.local` is populated with the iblai.app endpoints — no manual platform credentials are needed up front.
 
@@ -126,7 +125,7 @@ pnpm start
 
 ### Native builds (iOS, Android, macOS, Linux, Surface)
 
-Wrap videoAI in a native shell with [Tauri v2](https://tauri.app) using the
+Wrap Video in a native shell with [Tauri v2](https://tauri.app) using the
 `iblai builds` family of commands (full guide:
 [`/iblai-ops-build`](https://github.com/iblai/vibe/blob/main/skills/iblai-ops-build/SKILL.md)).
 All platforms share a single static `next build` export — the CLI runs the
@@ -280,7 +279,7 @@ And then deploy:
 iblai deploy vercel
 ```
 
-The CLI auto-detects the deploy mode from `next.config.mjs`. videoAI is a server-rendered Next.js app (App Router with API routes for the HeyGen and OpenAI proxies), so the CLI will:
+The CLI auto-detects the deploy mode from `next.config.mjs`. Video is a server-rendered Next.js app (App Router with API routes for the HeyGen and OpenAI proxies), so the CLI will:
 
 - deploy the repo root to Vercel for a remote build,
 - disable Vercel authentication / password protection,
@@ -308,7 +307,7 @@ pnpm release --ci       # non-interactive (used by CI)
 
 ```
 app/
-├── layout.tsx                         # Root layout — title "videoAI"
+├── layout.tsx                         # Root layout — title "Video"
 ├── page.tsx                           # Home redirect (auth check → /ai-avatar/generate)
 ├── login/                             # SSO entry
 ├── sso-login-complete/                # SSO callback (SDK <SsoLogin>)
@@ -417,6 +416,10 @@ iblai add invite         # Invite dialogs
 - [iblai-app-cli](https://github.com/iblai/iblai-app-cli) — CLI for scaffolding ibl.ai apps
 - [@iblai/mcp](https://www.npmjs.com/package/@iblai/mcp) — MCP server for AI-assisted development
 - [Vibe](https://github.com/iblai/vibe) — developer toolkit for building with ibl.ai
+
+## License
+
+Released under the [MIT License](LICENSE).
 
 ---
 
