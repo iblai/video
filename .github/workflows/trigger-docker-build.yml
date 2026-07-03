@@ -12,7 +12,7 @@ permissions:
 
 env:
   ECR_REGISTRY: 765174860755.dkr.ecr.us-east-1.amazonaws.com
-  IMAGE_NAME: iblai-videoai-spa-pro
+  IMAGE_NAME: iblai-video-spa
 
 jobs:
   build:
