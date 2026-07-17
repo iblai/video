@@ -12,6 +12,7 @@
   "scripts": {
     "prebuild": "next telemetry disable",
     "build": "next build",
+    "typecheck": "tsgo --noEmit",
     "predev": "next telemetry disable",
     "dev": "next dev",
     "prelint": "next telemetry disable",
@@ -88,7 +89,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@iblai/iblai-js": "^1.17.9",
+    "@iblai/iblai-js": "^1.26.0",
     "@playwright/test": "^1.59.1",
     "@tauri-apps/api": "2.11.0",
     "@tauri-apps/plugin-os": "2.3.2",
@@ -98,6 +99,7 @@
     "@types/node": "^22",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.6",
     "dotenv": "^17.4.2",

@@ -33,7 +33,6 @@ import config from "@/lib/iblai/config";
 import { resolveAppTenant } from "@/lib/iblai/tenant";
 import {
   authSpaOptions,
-  hasNonExpiredAuthToken,
   handleLogout,
   handleTenantSwitch as runTenantSwitch,
 } from "@/lib/iblai/auth-utils";
@@ -134,7 +133,6 @@ function IblaiProvidersInner({ children }: { children: ReactNode }) {
             saveRedirect,
           })
         }
-        hasNonExpiredAuthToken={hasNonExpiredAuthToken}
         username={username}
         pathname={pathname ?? "/"}
         storageService={storageService}
