@@ -1,5 +1,5 @@
 # Stage 0: Base
-FROM node:20 AS base
+FROM node:22 AS base
 WORKDIR /app
 
 # pnpm 11+ aborts non-interactive flows that would purge node_modules
@@ -51,7 +51,7 @@ RUN echo "NEXT_PUBLIC_BASE_PATH=${NEXT_PUBLIC_BASE_PATH}" > .env.production
 RUN pnpm run build
 
 # Stage 2: Runner (Next.js standalone)
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 # Carry build-time args into runtime env so `entrypoint.sh` (which
