@@ -1,5 +1,5 @@
 # Stage 0: Base
-FROM node:20 AS base
+FROM node:26.12.1 AS base
 WORKDIR /app
 
 # pnpm 11+ aborts non-interactive flows that would purge node_modules
@@ -9,11 +9,8 @@ WORKDIR /app
 ENV CI=true
 ENV NODE_OPTIONS="--max-old-space-size=8192"
 
-# Pin Node 25.3.0 via `n` (matches workspace-hq).
-RUN npm install -g n && n 25.3.0 && hash -r
-
-# Enable Corepack and activate pnpm.
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm (Node 25+ images no longer bundle Corepack).
+RUN npm install -g pnpm@11.3.0
 
 # Copy package manifests first for layer caching.
 COPY package.json .
@@ -51,7 +48,7 @@ RUN echo "NEXT_PUBLIC_BASE_PATH=${NEXT_PUBLIC_BASE_PATH}" > .env.production
 RUN pnpm run build
 
 # Stage 2: Runner (Next.js standalone)
-FROM node:20-alpine AS runner
+FROM node:26.12.1-alpine AS runner
 WORKDIR /app
 
 # Carry build-time args into runtime env so `entrypoint.sh` (which
@@ -64,11 +61,6 @@ ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
 # Next sets `NODE_ENV=production` internally after server boot, but the
 # entrypoint runs before that and would otherwise emit `NODE_ENV: ""`.
 ENV NODE_ENV=production
-
-# Install Node 25.3.0 from the official musl build (Alpine).
-RUN apk add --no-cache libstdc++ \
-    && wget -qO- https://unofficial-builds.nodejs.org/download/release/v25.3.0/node-v25.3.0-linux-x64-musl.tar.gz | tar xz -C /usr/local --strip-components=1 \
-    && node --version
 
 # Standalone output bundles a minimal node_modules.
 COPY --from=builder /app/.next/standalone ./
